@@ -21,6 +21,7 @@ public:
 
 	/// Must be called before adding this object as an action
 	void setListenedChannel(const Channel &channel);
+	void setVolume(int value) ;
 
 private:
 	/// The channel of the listener proxy this widget is operating on

@@ -150,6 +150,10 @@ public:
 	void openTextMessageDialog(ClientUser *p);
 	void openUserLocalNicknameDialog(const ClientUser &p);
 
+	void startTalkingToChannel(int channelId); 
+	void stopTalkingToChannel(int channelId);
+	void setVolumeOnChannel(int channelID, int volume); 
+
 #ifdef Q_OS_WIN
 	bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) Q_DECL_OVERRIDE;
 	unsigned int uiNewHardware;

@@ -4,7 +4,7 @@
 // Mumble source tree or at <https://www.mumble.info/LICENSE>.
 
 #include "SocketRPC.h"
-
+#include <iostream>
 #include "Channel.h"
 #include "ClientUser.h"
 #include "MainWindow.h"
@@ -78,8 +78,9 @@ void SocketRPCClient::processXml() {
 #else
 	qdd.setContent(qbaOutput, false);
 #endif
-
+	
 	QDomElement request = qdd.firstChildElement();
+
 
 	if (!request.isNull()) {
 		bool ack = false;
@@ -110,6 +111,59 @@ void SocketRPCClient::processXml() {
 
 			ack = true;
 		} else if (request.nodeName() == QLatin1String("self")) {
+			static const QString setVolPrefix = QLatin1String("listentochannelatvolume_");
+			QString nodeName = request.firstChildElement().nodeName();
+			if (nodeName.startsWith(setVolPrefix)) {
+	
+				QString tail = nodeName.mid(setVolPrefix.size()); // e.g. "3_10"
+				// Split "3_10" into ["3", "10"]
+				QStringList parts = tail.split('_');
+				if (parts.size() == 2) {
+					bool ok1 = false;
+					bool ok2 = false;
+
+					int channelID    = parts[0].toInt(&ok1);
+					int volumeValue  = parts[1].toInt(&ok2);
+
+					if (ok1 && ok2) {
+						// Successfully parsed both channel ID and volume
+						std::cout << "Channel ID: " << channelID
+									<< ", volume: " << volumeValue
+									<< std::endl;
+
+						Global::get().mw->setVolumeOnChannel(channelID, volumeValue);
+					} else {
+						std::cout << "Failed to parse channel or volume as int." << std::endl;
+					}
+				} else {
+					std::cout << "Node name tail does not contain two parts (e.g. \"listentochannelatvolume_3_10\")." << std::endl;
+				}
+			}
+			static const QString shoutToChannelPrefix = QLatin1String("shouttochannel_");
+			nodeName = request.firstChildElement().nodeName();
+			if (nodeName.startsWith(shoutToChannelPrefix)) {
+				QString tail = nodeName.mid(shoutToChannelPrefix.size()); // e.g. "3_10"
+				bool ok1 = false;
+				int channelID    = tail.toInt(&ok1);
+				if (ok1) {
+					Global::get().mw->startTalkingToChannel(channelID);
+				} else {
+					std::cout << "Failed to parse channel as int." << std::endl;
+				}
+			}
+			static const QString stopShoutToChannelPrefix = QLatin1String("stopshouttochannel_");
+			nodeName = request.firstChildElement().nodeName();
+			if (nodeName.startsWith(stopShoutToChannelPrefix)) {
+				QString tail = nodeName.mid(stopShoutToChannelPrefix.size()); // e.g. "3_10"
+				bool ok1 = false;
+				int channelID    = tail.toInt(&ok1);
+				if (ok1) {
+					Global::get().mw->stopTalkingToChannel(channelID);
+				} else {
+					std::cout << "Failed to parse channel as int." << std::endl;
+				}
+			}
+
 			iter = qmRequest.find(QLatin1String("mute"));
 			if (iter != qmRequest.constEnd()) {
 				bool set = iter.value().toBool();
@@ -211,6 +265,8 @@ void SocketRPCClient::processXml() {
 				ack = true;
 			}
 		}
+		
+
 
 		QDomDocument replydoc;
 		QDomElement reply = replydoc.createElement(QLatin1String("reply"));

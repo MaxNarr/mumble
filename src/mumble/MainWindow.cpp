@@ -3043,6 +3043,43 @@ void MainWindow::removeTarget(ShortcutTarget *st) {
 		qmCurrentTargets[*st] -= 1;
 }
 
+void MainWindow::startTalkingToChannel(int channelId) {
+    // 1) Create a ShortcutTarget that references the desired channel
+    ShortcutTarget st;
+    st.bUsers            = false;         // We’re targeting a channel (not specific users)
+    st.bCurrentSelection = false;         // We’re directly specifying a channel ID
+    st.iChannel          = channelId;
+    st.bLinks            = false;         // Not including linked channels
+    st.bChildren         = false;         // Not including subchannels
+    // 2) Add it to the current targets map
+    addTarget(&st);
+    // 3) Force Mumble to update which channels/users we’re whispering/shouting to
+    updateTarget();
+    // 4) Pretend we have pressed a push-to-talk key
+    Global::get().iPushToTalk++;
+}
+
+void MainWindow::stopTalkingToChannel(int channelId) {
+    // Create the *same* ShortcutTarget structure you added earlier
+    // so removeTarget() knows exactly which target to remove.
+    ShortcutTarget st;
+    st.bUsers            = false;
+    st.bCurrentSelection = false;
+    st.iChannel          = channelId;
+    st.bLinks            = false;
+    st.bChildren         = false;
+
+    // Decrement the push-to-talk counter
+    // (Only do this if you actually incremented it in startTalkingToChannel)
+    if (Global::get().iPushToTalk > 0) {
+        Global::get().iPushToTalk--;
+    }
+    // Remove the channel target
+    removeTarget(&st);
+    // Let Mumble know we no longer need to whisper/shout there
+    updateTarget();
+}
+
 void MainWindow::on_gsCycleTransmitMode_triggered(bool down, QVariant) {
 	if (down) {
 		QString qsNewMode;
@@ -3077,6 +3114,17 @@ void MainWindow::on_gsListenChannel_triggered(bool down, QVariant scdata) {
 		} else {
 			Global::get().sh->stopListeningToChannel(c->iId);
 		}
+	}
+}
+void MainWindow::setVolumeOnChannel(int channelID, int volume) {
+	const Channel *c = Channel::get(static_cast<unsigned int>(channelID));
+	if (c) {
+			Global::get().sh->startListeningToChannel(c->iId);
+			m_listenerVolumeSlider->setListenedChannel(*c);
+			m_listenerVolumeSlider->setVolume(volume);
+			if (volume<=-30){
+			 Global::get().sh->stopListeningToChannel(c->iId);
+			}
 	}
 }
 

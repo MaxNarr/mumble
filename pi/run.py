@@ -99,6 +99,7 @@ def connect_jack_ports(source, destination, disconnect=False):
     :param disconnect: if true it disconnects this rout, if false it connects
 
     """
+
     condisconType = "connect"
     if disconnect: condisconType ="disconnect"
 
@@ -115,6 +116,8 @@ def connectSideToneJack():
     """
     Sets up JACK connections between input and output ports.
     """
+    global capture_ports, playback_ports  # <-- Declare them as global
+
     try:
         # List available ports
         result = subprocess.run("jack_lsp", shell=True, capture_output=True, text=True)
@@ -138,6 +141,7 @@ def disconnectSideToneJack():
     """
     Close up JACK connections between input and output ports.
     """
+    global capture_ports, playback_ports  # <-- Declare them as global
     try:
         if not capture_ports or not playback_ports:
             print("Error: No valid JACK ports found.")

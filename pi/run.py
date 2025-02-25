@@ -4,10 +4,9 @@ import time
 
 capture_ports = None
 playback_ports = None
-
+jackstarted = False
 def main():
-    if start_jackd():
-            connectSideToneJack()
+    jackstarted = start_jackd()
     processCommands()
 
 
@@ -23,7 +22,7 @@ def run_command(command, timeout=10):
 
 
 def processCommands():
-    basedirMumble = "./build/"
+    basedirMumble = "../build/"
     
     print("Enter a command (Talk, TalkStop, Listen, ListenStop, Start) or type 'exit' to quit:")
     
@@ -37,14 +36,23 @@ def processCommands():
         match user_input:
             case "Talk":
                 output = run_command(basedirMumble + "mumble rpc shouttochannel_")
+                connectSideToneJack() # so einfach ist es nicht... was bei mehreren channels ?--> mit zählen wie pptcounter,bzw channel list/ map
+
             case "TalkStop":
                 output = run_command(basedirMumble + "mumble rpc stopshouttochannel_")
+                disconnectSideToneJack()
+
             case "Listen":
                 output = run_command(basedirMumble + "mumble rpc listentochannelatvolume_")
             case "ListenStop":
                 output = run_command(basedirMumble + "mumble rpc stoplistentochannel")
             case "Start":
                 output = run_command(basedirMumble + "mumble")
+            case "getChannelInfo":
+                output = run_command(basedirMumble + "mumble rpc getchannelsinfo") #holt alles in JSON zu den Channels
+            case "getUsersInfo":
+                output = run_command(basedirMumble + "mumble rpc getusersinfo") #holt alles in JSON zu den Channels
+                  
             case _:
                 output = "Invalid command"
 

@@ -178,8 +178,7 @@ void SocketRPCClient::processXml() {
 				QString request = "send_message";        // RPC method name
 			
 				QMap<QString, QVariant> params;
-				params.insert("message", Channel::toJsonString().toStdString());
-			
+				params.insert("message", QString::fromStdString(Channel::toJsonString().toStdString()));			
 				bool success = SocketRPC::send(basename, request, params);
 				
 				if (success) {

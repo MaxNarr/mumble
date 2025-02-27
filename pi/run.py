@@ -2,8 +2,9 @@ import subprocess
 import time
 import socket
 import xml.etree.ElementTree as ET
+import os
 
-SOCKET_PATH = "/home/coms2/.python_rpc_serverSocket"  # Match this with the C++ pipepath
+SOCKET_PATH = f"/run/user/{os.getuid()}/python_rpc_serverSocket"
 
 capture_ports = None
 playback_ports = None

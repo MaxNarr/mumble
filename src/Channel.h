@@ -13,6 +13,10 @@
 #include <QtCore/QSet>
 #include <QtCore/QString>
 
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonArray>
+
 #ifdef MUMBLE
 #	include <atomic>
 #	include "ChannelFilterMode.h"
@@ -30,6 +34,7 @@ private:
 	Q_DISABLE_COPY(Channel)
 private:
 	QSet< Channel * > qsUnseen;
+    QJsonObject toJson() const;
 
 public:
 	static constexpr int ROOT_ID = 0;
@@ -45,6 +50,7 @@ public:
 	QList< User * > qlUsers;
 	QHash< QString, Group * > qhGroups;
 	QList< ChanACL * > qlACL;
+    static QString toJsonString();
 
 #ifdef MUMBLE
 	/// A flag indicating whether this channel has enter restrictions (ACL denying ENTER) in place

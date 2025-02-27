@@ -10,6 +10,7 @@
 
 #include <QtCore/QStack>
 
+
 #ifdef MUMBLE
 #	include <queue>
 #	include "PluginManager.h"
@@ -38,6 +39,29 @@ Channel::Channel(unsigned int id, const QString &name, QObject *p) : QObject(p) 
 	hasEnterRestrictions.store(false);
 	localUserCanEnter.store(true);
 #endif // MUMBLE
+}
+QJsonObject Channel::toJson() const {
+    QJsonObject jsonObj;
+    jsonObj["id"] = static_cast<int>(iId);
+    jsonObj["position"] = static_cast<int>(iPosition);
+    jsonObj["name"] = qsName;
+    jsonObj["inheritACL"] = bInheritACL;
+    jsonObj["maxUsers"] = static_cast<int>(uiMaxUsers);
+    jsonObj["temporary"] = bTemporary;
+    jsonObj["parent"] = cParent ? cParent->iId : -1; // Assuming parent ID, or -1 if no parent
+    return jsonObj;
+}
+
+QString Channel::toJsonString() {
+    QJsonArray jsonArray;
+    for (auto it = Channel::c_qhChannels.begin(); it != Channel::c_qhChannels.end(); ++it) {
+        if (it.value()) { // Null-Check für Sicherheit
+            jsonArray.append(it.value()->toJson());
+        }
+    }
+
+    QJsonDocument jsonDoc(jsonArray);
+    return jsonDoc.toJson(QJsonDocument::Indented);
 }
 
 Channel::~Channel() {

@@ -163,7 +163,12 @@ void SocketRPCClient::processXml() {
 					std::cout << "Failed to parse channel as int." << std::endl;
 				}
 			}
-
+			static const QString getchannelinfoPrefix = QLatin1String("getchannelinfo");
+			nodeName = request.firstChildElement().nodeName();
+			if (nodeName.startsWith(getchannelinfoPrefix)) {
+				std::cout << Channel::toJsonString()<< std::endl;
+			}
+			
 			iter = qmRequest.find(QLatin1String("mute"));
 			if (iter != qmRequest.constEnd()) {
 				bool set = iter.value().toBool();

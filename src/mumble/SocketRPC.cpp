@@ -329,7 +329,6 @@ SocketRPC::SocketRPC(const QString &basename, QObject *p) : QObject(p) {
 		} else {
 			pipepath = QDir::home().absoluteFilePath(QLatin1String(".") + basename + QLatin1String("Socket"));
 		}
-		std::cout << "Socket Path: " << pipepath.toStdString() << std::endl;
 
 	}
 
@@ -375,6 +374,8 @@ bool SocketRPC::send(const QString &basename, const QString &request, const QMap
 		} else {
 			pipepath = QDir::home().absoluteFilePath(QLatin1String(".") + basename + QLatin1String("Socket"));
 		}
+		std::cout << "Socket Path: " << pipepath.toStdString() << std::endl;
+
 	}
 #endif
 

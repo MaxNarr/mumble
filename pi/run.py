@@ -1,6 +1,9 @@
 import subprocess
 import time
+import socket
+import xml.etree.ElementTree as ET
 
+SOCKET_PATH = "/home/coms2/.python_rpc_serverSocket"  # Match this with the C++ pipepath
 
 capture_ports = None
 playback_ports = None
@@ -173,24 +176,6 @@ def disconnectSideToneJack():
     except Exception as e:
         print(f"Error setting up JACK connections: {e}")
 
-# Example usage
-if __name__ == "__main__":
-    main()
-
-
-
-
-
-
-
-
-
-
-
-    import socket
-import xml.etree.ElementTree as ET
-
-SOCKET_PATH = "/home/coms2/.python_rpc_serverSocket"  # Match this with the C++ pipepath
 
 def handle_request(data):
     try:
@@ -208,3 +193,6 @@ def handle_request(data):
         print(f"Error processing request: {e}")
     return b"<reply><succeeded>false</succeeded></reply>"
 
+# Example usage
+if __name__ == "__main__":
+    main()

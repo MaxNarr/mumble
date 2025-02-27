@@ -46,7 +46,7 @@ def processCommands():
 
         conn, _ = server.accept()
         with conn:
-            data = conn.recv(1024).decode("utf-8")
+            data = recv_full_message(conn)
             if data:
                 print(f"Received request:\n{data}")
                 response = handle_request(data)
@@ -82,6 +82,17 @@ def processCommands():
 
         print(output)
 
+
+def recv_full_message(conn):
+    buffer = b""
+    while True:
+        chunk = conn.recv(4096)  # Read in 4KB chunks (adjust as needed)
+        if not chunk:
+            break  # Connection closed
+        buffer += chunk
+        if len(chunk) < 4096:  # If chunk is smaller, likely end of message
+            break
+    return buffer.decode("utf-8")
 
 
 def start_jackd(interface="hw:2", sample_rate=48000, buffer_size=128, periods=3):

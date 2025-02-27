@@ -48,7 +48,7 @@ QJsonObject Channel::toJson() const {
     jsonObj["inheritACL"] = bInheritACL;
     jsonObj["maxUsers"] = static_cast<int>(uiMaxUsers);
     jsonObj["temporary"] = bTemporary;
-    jsonObj["parent"] = cParent ? cParent->iId : -1; // Assuming parent ID, or -1 if no parent
+    jsonObj["parent"] = cParent ? static_cast<int>(cParent->iId) : -1; // Assuming parent ID, or -1 if no parent
     return jsonObj;
 }
 
@@ -61,7 +61,7 @@ QString Channel::toJsonString() {
     }
 
     QJsonDocument jsonDoc(jsonArray);
-    return jsonDoc.toJson(QJsonDocument::Indented);
+    return QString::fromUtf8(jsonDoc.toJson(QJsonDocument::Indented));
 }
 
 Channel::~Channel() {

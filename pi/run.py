@@ -35,21 +35,21 @@ def processCommands():
         
         match user_input:
             case "Talk":
-                output = run_command(basedirMumble + "mumble rpc shouttochannel_")
+                output = run_command(basedirMumble + "mumble rpc shouttochannel_1")
                 connectSideToneJack() # so einfach ist es nicht... was bei mehreren channels ?--> mit zählen wie pptcounter,bzw channel list/ map
 
             case "TalkStop":
-                output = run_command(basedirMumble + "mumble rpc stopshouttochannel_")
+                output = run_command(basedirMumble + "mumble rpc stopshouttochannel_1")
                 disconnectSideToneJack()
 
             case "Listen":
-                output = run_command(basedirMumble + "mumble rpc listentochannelatvolume_")
+                output = run_command(basedirMumble + "mumble rpc listentochannelatvolume_1_10")
             case "ListenStop":
-                output = run_command(basedirMumble + "mumble rpc stoplistentochannel")
+                output = run_command(basedirMumble + "mumble rpc listentochannelatvolume_1_-40")
             case "Start":
                 output = run_command(basedirMumble + "mumble")
             case "getChannelInfo":
-                output = run_command(basedirMumble + "mumble rpc getchannelsinfo") #holt alles in JSON zu den Channels
+                output = run_command(basedirMumble + "mumble rpc getchannelinfo") #holt alles in JSON zu den Channels
             case "getUsersInfo":
                 output = run_command(basedirMumble + "mumble rpc getusersinfo") #holt alles in JSON zu den Channels
                   

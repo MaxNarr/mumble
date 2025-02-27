@@ -328,6 +328,7 @@ SocketRPC::SocketRPC(const QString &basename, QObject *p) : QObject(p) {
 			pipepath = xdgRuntimeDir.absoluteFilePath(basename + QLatin1String("Socket"));
 		} else {
 			pipepath = QDir::home().absoluteFilePath(QLatin1String(".") + basename + QLatin1String("Socket"));
+			std::cout << "Socket Path: " << pipepath.toStdString() << std::endl;
 		}
 	}
 

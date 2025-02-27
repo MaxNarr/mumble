@@ -172,14 +172,13 @@ void SocketRPCClient::processXml() {
 			static const QString getchannelinfoPrefix = QLatin1String("getchannelinfo");
 			nodeName = request.firstChildElement().nodeName();
 			if (nodeName.startsWith(getchannelinfoPrefix)) {
-				std::cout << Channel::toJsonString().toStdString()<< std::endl;
 
 
 				QString basename = "python_rpc_server";  // Name of the socket
 				QString request = "send_message";        // RPC method name
 			
 				QMap<QString, QVariant> params;
-				params.insert("message", "Hello from C++!");
+				params.insert("message", Channel::toJsonString().toStdString());
 			
 				bool success = SocketRPC::send(basename, request, params);
 				

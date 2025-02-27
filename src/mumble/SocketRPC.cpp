@@ -166,7 +166,7 @@ void SocketRPCClient::processXml() {
 			static const QString getchannelinfoPrefix = QLatin1String("getchannelinfo");
 			nodeName = request.firstChildElement().nodeName();
 			if (nodeName.startsWith(getchannelinfoPrefix)) {
-				std::cout << Channel::toJsonString()<< std::endl;
+				std::cout << Channel::toJsonString().toStdString()<< std::endl;
 			}
 			
 			iter = qmRequest.find(QLatin1String("mute"));

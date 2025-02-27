@@ -16,6 +16,12 @@
 #include <QtNetwork/QLocalServer>
 #include <QtXml/QDomDocument>
 
+#include "SocketRPC.h"
+#include <QMap>
+#include <QString>
+#include <QVariant>
+
+
 SocketRPCClient::SocketRPCClient(QLocalSocket *s, QObject *p) : QObject(p), qlsSocket(s), qbBuffer(nullptr) {
 	qlsSocket->setParent(this);
 
@@ -167,6 +173,24 @@ void SocketRPCClient::processXml() {
 			nodeName = request.firstChildElement().nodeName();
 			if (nodeName.startsWith(getchannelinfoPrefix)) {
 				std::cout << Channel::toJsonString().toStdString()<< std::endl;
+
+
+				QString basename = "python_rpc_server";  // Name of the socket
+				QString request = "send_message";        // RPC method name
+			
+				QMap<QString, QVariant> params;
+				params.insert("message", "Hello from C++!");
+			
+				bool success = SocketRPC::send(basename, request, params);
+				
+				if (success) {
+					std::cout << "Message successfully sent to Python!" << std::endl;
+				} else {
+					std::cerr << "Failed to send message to Python!" << std::endl;
+				}
+			
+				return 0;
+
 			}
 			
 			iter = qmRequest.find(QLatin1String("mute"));

@@ -23,10 +23,30 @@ def run_command(command, timeout=10):
 
 def processCommands():
     basedirMumble = "../build/"
-    
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+    try:
+        server.bind(SOCKET_PATH)
+    except OSError:
+        print("Removing existing socket file and rebinding...")
+        import os
+        os.remove(SOCKET_PATH)
+        server.bind(SOCKET_PATH)
+
+    server.listen(1)
+    print(f"Python RPC Server listening on {SOCKET_PATH}...")
+
     print("Enter a command (Talk, TalkStop, Listen, ListenStop, Start) or type 'exit' to quit:")
     
     while True:
+
+        conn, _ = server.accept()
+        with conn:
+            data = conn.recv(1024).decode("utf-8")
+            if data:
+                print(f"Received request:\n{data}")
+                response = handle_request(data)
+                conn.sendall(response)
         user_input = input("> ").strip()
         
         if user_input.lower() == "exit":
@@ -156,3 +176,35 @@ def disconnectSideToneJack():
 # Example usage
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
+
+
+    import socket
+import xml.etree.ElementTree as ET
+
+SOCKET_PATH = "/home/coms2/.python_rpc_serverSocket"  # Match this with the C++ pipepath
+
+def handle_request(data):
+    try:
+        root = ET.fromstring(data)
+        if root.tag == "send_message":
+            message = root.find("message").text
+            print(f"Received message from C++: {message}")
+
+            # Create a reply message in XML format
+            reply = ET.Element("reply")
+            success = ET.SubElement(reply, "succeeded")
+            success.text = "true"
+            return ET.tostring(reply)
+    except Exception as e:
+        print(f"Error processing request: {e}")
+    return b"<reply><succeeded>false</succeeded></reply>"
+

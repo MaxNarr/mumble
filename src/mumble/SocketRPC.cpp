@@ -188,9 +188,6 @@ void SocketRPCClient::processXml() {
 				} else {
 					std::cerr << "Failed to send message to Python!" << std::endl;
 				}
-			
-				return 0;
-
 			}
 			
 			iter = qmRequest.find(QLatin1String("mute"));

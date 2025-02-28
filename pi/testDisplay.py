@@ -10,8 +10,8 @@ MESSAGE = "Hello World! How are you today?"
 disp = st7735.ST7735(
     port=0,
     cs=st7735.BG_SPI_CS_FRONT,  # BG_SPI_CS_BACK or BG_SPI_CS_FRONT. BG_SPI_CS_FRONT (eg: CE1) for Enviro Plus
-    dc="PIN21",                 # "GPIO9" / "PIN21". "PIN21" for a Pi 5 with Enviro Plus
-    backlight="PIN32",          # "PIN18" for back BG slot, "PIN19" for front BG slot. "PIN32" for a Pi 5 with Enviro Plus
+    dc="GPIO26",                 # "GPIO9" / "PIN21". "PIN21" for a Pi 5 with Enviro Plus
+    backlight="GPIO20",          # "PIN18" for back BG slot, "PIN19" for front BG slot. "PIN32" for a Pi 5 with Enviro Plus
     rotation=90,
     spi_speed_hz=4000000
 )

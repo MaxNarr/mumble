@@ -11,7 +11,7 @@ def on_press():
 def on_release():
     print("Button released!")
 
-button = Button(17)
+button = Button(19)
 
 button.when_pressed = on_press  # Trigger on press
 button.when_released = on_release  # Trigger on release

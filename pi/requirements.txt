@@ -1,1 +1,6 @@
-sudo apt install python3-gpiozero
+gpiozero
+lgpio
+
+gpiod
+gpiodevice
+st7735

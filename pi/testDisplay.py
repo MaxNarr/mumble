@@ -81,7 +81,7 @@ def draw_rotated_text(image, text, position, angle, font, fill=(255, 255, 255)):
 
 # Write two lines of white text on the buffer, rotated 90 degrees counter clockwise.
 draw_rotated_text(img, "Hello World!", (0, 0), 90, font, fill=(255, 255, 255))
-draw_rotated_text(img, "This is a line of text.", (10, HEIGHT - 10), 0, font, fill=(255, 255, 255))
+draw_rotated_text(img, "This is a line of text.", (10, HEIGHT - 30), 0, font, fill=(255, 255, 255))
 
 # Write buffer to display hardware, must be called to make things visible on the
 # display!

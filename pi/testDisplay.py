@@ -1,88 +1,76 @@
-#https://www.instructables.com/Getting-18-Inch-LCD-Display-St7735s-to-Work-With-R/
-#sudo nano  /home/coms2/intercom_mumble/mumble/pi/venv/lib/python3.11/site-packages/st7735/__init__.py 
-#width 130 height 161. columns genauso
-
 import time
-
 from PIL import Image, ImageDraw, ImageFont
-
 import st7735
 
-MESSAGE = "Hello World! How are you today?"
+# 📌 Display Configuration
+WIDTH = 130  # ST7735 width
+HEIGHT = 161  # ST7735 height
 
-# Create ST7735 LCD display class.
+# 🔄 Color presets (default: Black)
+COLORS = {
+    "default": (0, 0, 0),   # Black
+    "active": (0, 0, 255),  # Blue
+    "speaking": (255, 0, 0),  # Red
+    "highlight": (255, 255, 255),  # White
+}
+
+# 🎨 Dynamic Tile Colors (Default: Black)
+tile_colors = ["default", "default", "default", "default"]
+
+# 🖥️ Initialize ST7735 Display
 disp = st7735.ST7735(
-  port=0,
-  cs=st7735.BG_SPI_CS_BACK,
-  dc="GPIO24",
-  backlight="GPIO22",
-  rst="GPIO25",
-  rotation=90,
-  invert=False,
-  spi_speed_hz=4000000
+    port=0,
+    cs=st7735.BG_SPI_CS_BACK,
+    dc="GPIO24",
+    backlight="GPIO22",
+    rst="GPIO25",
+    rotation=90,
+    invert=False,
+    spi_speed_hz=4000000
 )
 
-
-
-# Initialize display.
 disp.begin()
 
-WIDTH = disp.width
-HEIGHT = disp.height
+# 🖋️ Load Font
+font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
 
+# 📌 Function: Draw a Tile
+def draw_tile(draw, x, y, w, h, title, color):
+    draw.rectangle((x, y, x + w, y + h), fill=COLORS[color], outline=(255, 255, 255))
+    text_x = x + (w // 4)
+    text_y = y + 10
+    draw.text((text_x, text_y), title, font=font, fill=(255, 255, 255))
 
-# Clear the display to a red background.
-# Can pass any tuple of red, green, blue values (from 0 to 255 each).
-# Get a PIL Draw object to start drawing on the display buffer.
-img = Image.new("RGB", (WIDTH, HEIGHT), color=(255, 0, 0))
+# 📌 Function: Update Display
+def update_display(mode=4):
+    img = Image.new("RGB", (WIDTH, HEIGHT), color=(0, 0, 0))
+    draw = ImageDraw.Draw(img)
 
-draw = ImageDraw.Draw(img)
+    if mode == 4:  # 4 Tiles (Quadrants)
+        draw_tile(draw, 0, 0, WIDTH//2, HEIGHT//2, "Channel 1", tile_colors[0])
+        draw_tile(draw, WIDTH//2, 0, WIDTH//2, HEIGHT//2, "Channel 2", tile_colors[1])
+        draw_tile(draw, 0, HEIGHT//2, WIDTH//2, HEIGHT//2, "Channel 3", tile_colors[2])
+        draw_tile(draw, WIDTH//2, HEIGHT//2, WIDTH//2, HEIGHT//2, "Channel 4", tile_colors[3])
+    elif mode == 2:  # 2 Tiles (Halves)
+        draw_tile(draw, 0, 0, WIDTH, HEIGHT//2, "Channel 1", tile_colors[0])
+        draw_tile(draw, 0, HEIGHT//2, WIDTH, HEIGHT//2, "Channel 2", tile_colors[1])
 
-# Draw a purple rectangle with yellow outline.
-draw.rectangle((10, 10, WIDTH - 10, HEIGHT - 10), outline=(255, 255, 0), fill=(255, 0, 255))
+    disp.display(img)
 
-# Draw some shapes.
-# Draw a blue ellipse with a green outline.
-draw.ellipse((10, 10, WIDTH - 10, HEIGHT - 10), outline=(0, 255, 0), fill=(0, 0, 255))
+# 📌 Function: Change Tile Color
+def set_tile_color(tile_index, color):
+    if tile_index < len(tile_colors):
+        tile_colors[tile_index] = color
+        update_display()
 
-# Draw a white X.
-draw.line((10, 10, WIDTH - 10, HEIGHT - 10), fill=(255, 255, 255))
-draw.line((10, HEIGHT - 10, WIDTH - 10, 10), fill=(255, 255, 255))
+# 🔄 Example Usage (Testing)
+update_display(4)  # Start with 4 tiles
 
-# Draw a cyan triangle with a black outline.
-draw.polygon([(WIDTH / 2, 10), (WIDTH - 10, HEIGHT - 10), (10, HEIGHT - 10)], outline=(0, 0, 0), fill=(0, 255, 255))
-
-# Load default font.
-font = ImageFont.load_default()
-
-# Alternatively load a TTF font.
-# Some other nice fonts to try: http://www.dafont.com/bitmap.php
-# font = ImageFont.truetype("Minecraftia.ttf", 16)
-
-
-# Define a function to create rotated text.  Unfortunately PIL doesn"t have good
-# native support for rotated fonts, but this function can be used to make a
-# text image and rotate it so it"s easy to paste in the buffer.
-def draw_rotated_text(image, text, position, angle, font, fill=(255, 255, 255)):
-    # Get rendered font width and height.
-    x1, y1, x2, y2 = font.getbbox(text)
-    width = x2 - x1
-    height = y2 - y1
-    # Create a new image with transparent background to store the text.
-    textimage = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    # Render the text.
-    textdraw = ImageDraw.Draw(textimage)
-    textdraw.text((0, 0), text, font=font, fill=fill)
-    # Rotate the text image.
-    rotated = textimage.rotate(angle, expand=1)
-    # Paste the text into the image, using it as a mask for transparency.
-    image.paste(rotated, position, rotated)
-
-
-# Write two lines of white text on the buffer, rotated 90 degrees counter clockwise.
-draw_rotated_text(img, "Hello World!", (0, 0), 90, font, fill=(255, 255, 255))
-draw_rotated_text(img, "This is a line of text.", (10, HEIGHT - 10), 0, font, fill=(255, 255, 255))
-
-# Write buffer to display hardware, must be called to make things visible on the
-# display!
-disp.display(img)
+time.sleep(2)
+set_tile_color(0, "active")  # Channel 1 turns blue
+time.sleep(2)
+set_tile_color(2, "speaking")  # Channel 3 turns red
+time.sleep(2)
+set_tile_color(1, "highlight")  # Channel 2 turns white
+time.sleep(2)
+set_tile_color(3, "active")  # Channel 4 turns blue

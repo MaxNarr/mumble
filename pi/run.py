@@ -4,6 +4,7 @@ import socket
 import xml.etree.ElementTree as ET
 import os
 import threading
+import json
 
 SOCKET_PATH = f"/run/user/{os.getuid()}/python_rpc_serverSocket"
 basedirMumble = "../build/"
@@ -11,6 +12,8 @@ basedirMumble = "../build/"
 capture_ports = None
 playback_ports = None
 jackstarted = False
+channels = None
+
 def main():
     jackstarted = start_jackd()
     processCommands()
@@ -82,7 +85,6 @@ def socket_listener(server):
             with conn:
                 data = recv_full_message(conn)
                 if data:
-                    print(f"Received request:\n{data}")
                     response = handle_request(data)
                     conn.sendall(response)
         except OSError:
@@ -118,9 +120,7 @@ def user_input_loop(basedirMumble):
             case "Start":
                 output = run_command(basedirMumble + "mumble")
             case "getchannelinfo":
-                print("here1")
                 output = run_command(basedirMumble + "mumble rpc getchannelinfo")
-                print("here2")
             case "getUsersInfo":
                 output = run_command(basedirMumble + "mumble rpc getusersinfo")
             case _:
@@ -240,8 +240,9 @@ def handle_request(data):
         root = ET.fromstring(data)
         if root.tag == "send_message":
             message = root.find("message").text
-            print(f"Received message from C++: {message}")
-
+            #print(f"Received message from C++: {message}")
+            global channels 
+            channels = getChannelsFromJson(message)
             # Create a reply message in XML format
             reply = ET.Element("reply")
             success = ET.SubElement(reply, "succeeded")
@@ -250,6 +251,22 @@ def handle_request(data):
     except Exception as e:
         print(f"Error processing request: {e}")
     return b"<reply><succeeded>false</succeeded></reply>"
+
+
+def getChannelsFromJson(json_string):
+
+    # Parse the JSON string into a Python list of dictionaries
+    channels = json.loads(json_string)
+
+    # Loop through each channel in the list
+    for channel in channels:
+        channel_id = channel["id"]
+        channel_name = channel["name"]
+        parent_id = channel["parent"]
+        
+        # Do something with each channel
+        print(f"Channel ID: {channel_id}, Name: {channel_name}, Parent: {parent_id}")
+    return channels
 
 # Example usage
 if __name__ == "__main__":

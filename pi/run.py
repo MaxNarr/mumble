@@ -72,8 +72,10 @@ def processCommands():
                 output = run_command(basedirMumble + "mumble rpc listentochannelatvolume_1_-40")
             case "Start":
                 output = run_command(basedirMumble + "mumble")
-            case "getChannelInfo":
+            case "getchannelinfo":
+                print("here1")
                 output = run_command(basedirMumble + "mumble rpc getchannelinfo") #holt alles in JSON zu den Channels
+                print("here2")
             case "getUsersInfo":
                 output = run_command(basedirMumble + "mumble rpc getusersinfo") #holt alles in JSON zu den Channels
                   

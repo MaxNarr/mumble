@@ -1,3 +1,7 @@
+#https://www.instructables.com/Getting-18-Inch-LCD-Display-St7735s-to-Work-With-R/
+#sudo nano  /home/coms2/intercom_mumble/mumble/pi/venv/lib/python3.11/site-packages/st7735/__init__.py 
+#width 130 height 161. columns genauso
+
 import time
 
 from PIL import Image, ImageDraw, ImageFont
@@ -44,5 +48,5 @@ while True:
     x = (time.time() - t_start) * 100
     x %= (size_x + 160)
     draw.rectangle((0, 0, 160, 80), (0, 0, 0))
-    draw.text((int(text_x - x), text_y), MESSAGE, font=font, fill=(255, 255, 255))
+    draw.text((int(text_x - x), text_y), MESSAGE, font=font, fill=(205, 0, 255))
     disp.display(img)

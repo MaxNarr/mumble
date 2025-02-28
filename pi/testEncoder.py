@@ -13,7 +13,7 @@ def on_press():
     global last_press_time
     current_time = time()
     diff = current_time - last_press_time
-    if diff <= double_press_threshold and diff > 0.1 :
+    if diff <= double_press_threshold :
         print("Double press detected!"+ str(current_time - last_press_time))
     last_press_time = current_time
 

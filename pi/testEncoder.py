@@ -31,7 +31,8 @@ button2.when_pressed = on_press  # Trigger on press
 button3 = Button(18,pull_up=True, bounce_time=0.02)
 button3.when_pressed = on_release  # Trigger on press
 
-#while True:
+while True:
+    pass
 #    if encoder.value != last_position:
 #        print(f"Rotary position: {encoder.value}")
 #        last_position = encoder.value

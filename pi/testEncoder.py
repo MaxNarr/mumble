@@ -2,11 +2,11 @@ from gpiozero import RotaryEncoder
 from gpiozero import Button
 from time import time
 
-encoder = RotaryEncoder(18, 17, wrap=False)  # Replace with your GPIO pins
+encoder = RotaryEncoder(18, 17, wrap=False,max_steps=0, bounce_time=0.01)  # Replace with your GPIO pins
 
 last_position = encoder.value
 last_press_time = 0
-double_press_threshold = 0.5  # Maximum time (seconds) between presses
+double_press_threshold = 0.7  # Maximum time (seconds) between presses
 
 def on_press():
     print("Button pressed!")

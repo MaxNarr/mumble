@@ -6,6 +6,7 @@ import os
 import threading
 
 SOCKET_PATH = f"/run/user/{os.getuid()}/python_rpc_serverSocket"
+basedirMumble = "../build/"
 
 capture_ports = None
 playback_ports = None

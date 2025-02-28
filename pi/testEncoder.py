@@ -9,6 +9,7 @@ last_press_time = 0
 double_press_threshold = 0.5  # Maximum time (seconds) between presses
 
 def on_press():
+    print("Button pressed!")
     global last_press_time
     current_time = time()
     diff = current_time - last_press_time

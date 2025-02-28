@@ -13,7 +13,7 @@ def on_press():
     current_time = time()
     
     if current_time - last_press_time <= double_press_threshold:
-        print("Double press detected!"+ current_time - last_press_time)
+        print("Double press detected!"+ str(current_time - last_press_time))
     last_press_time = current_time
 
 def on_release():

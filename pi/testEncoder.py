@@ -11,8 +11,8 @@ double_press_threshold = 0.5  # Maximum time (seconds) between presses
 def on_press():
     global last_press_time
     current_time = time()
-    
-    if current_time - last_press_time <= double_press_threshold:
+    diff = current_time - last_press_time
+    if diff <= double_press_threshold and diff > 0.2 :
         print("Double press detected!"+ str(current_time - last_press_time))
     last_press_time = current_time
 

@@ -2,7 +2,7 @@ from gpiozero import RotaryEncoder
 from gpiozero import Button
 from time import time
 
-encoder = RotaryEncoder(17, 18, wrap=True)  # Replace with your GPIO pins
+encoder = RotaryEncoder(18, 17, wrap=False)  # Replace with your GPIO pins
 
 last_position = encoder.value
 last_press_time = 0

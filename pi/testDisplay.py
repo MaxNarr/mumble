@@ -3,8 +3,8 @@ from PIL import Image, ImageDraw, ImageFont
 import st7735
 
 # 📌 Display Configuration
-WIDTH = 130  # ST7735 display width
-HEIGHT = 161  # ST7735 display height
+WIDTH = 65  # ST7735 display width
+HEIGHT = 80  # ST7735 display height
 
 # 🔄 Color presets
 COLORS = {

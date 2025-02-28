@@ -3,6 +3,7 @@ import time
 import socket
 import xml.etree.ElementTree as ET
 import os
+import threading
 
 SOCKET_PATH = f"/run/user/{os.getuid()}/python_rpc_serverSocket"
 
@@ -26,41 +27,84 @@ def run_command(command, timeout=10):
 
 
 def processCommands():
-    basedirMumble = "../build/"
+    """Starts two threads:
+       1) One for socket connections
+       2) One for user input
+    """
+    # 1. Create and bind the socket server
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-
     try:
         server.bind(SOCKET_PATH)
     except OSError:
         print("Removing existing socket file and rebinding...")
-        import os
         os.remove(SOCKET_PATH)
         server.bind(SOCKET_PATH)
 
     server.listen(1)
     print(f"Python RPC Server listening on {SOCKET_PATH}...")
+    print("Enter a command (Talk, TalkStop, Listen, ListenStop, Start, getchannelinfo, getUsersInfo) or type 'exit' to quit:")
 
-    print("Enter a command (Talk, TalkStop, Listen, ListenStop, Start) or type 'exit' to quit:")
-    
+    # 2. Start thread for the socket listener
+    socket_thread = threading.Thread(
+        target=socket_listener,
+        args=(server,),  # pass the server socket
+        daemon=True      # daemon=True means it will exit when main thread exits
+    )
+    socket_thread.start()
+
+    # 3. Start thread for user input (optional; 
+    #    or you can do user input on the main thread)
+    user_thread = threading.Thread(
+        target=user_input_loop,
+        args=(basedirMumble,),
+        daemon=True
+    )
+    user_thread.start()
+
+    # 4. Keep main thread alive until user types 'exit'
+    #    We'll just join the user_thread so the program doesn’t exit immediately
+    user_thread.join()
+
+    # 5. Once 'exit' is detected, close the server and remove the socket
+    server.close()
+    try:
+        os.remove(SOCKET_PATH)
+    except FileNotFoundError:
+        pass
+    print("Server and threads stopped.")
+
+def socket_listener(server):
+    """Loop forever accepting new connections. Each connection is handled immediately."""
     while True:
+        try:
+            conn, _ = server.accept()
+            with conn:
+                data = recv_full_message(conn)
+                if data:
+                    print(f"Received request:\n{data}")
+                    response = handle_request(data)
+                    conn.sendall(response)
+        except OSError:
+            # If the server socket is closed externally, break out
+            break
+        except Exception as e:
+            print(f"Error in socket_listener: {e}")
+            break
 
-        conn, _ = server.accept()
-        with conn:
-            data = recv_full_message(conn)
-            if data:
-                print(f"Received request:\n{data}")
-                response = handle_request(data)
-                conn.sendall(response)
+def user_input_loop(basedirMumble):
+    """Loop forever reading user input from stdin."""
+    while True:
         user_input = input("> ").strip()
-        
         if user_input.lower() == "exit":
             print("Exiting program.")
-            break
+            # Return from this thread, which causes .join() to complete
+            return
         
+        # Dispatch command
         match user_input:
             case "Talk":
                 output = run_command(basedirMumble + "mumble rpc shouttochannel_1")
-                connectSideToneJack() # so einfach ist es nicht... was bei mehreren channels ?--> mit zählen wie pptcounter,bzw channel list/ map
+                connectSideToneJack()
 
             case "TalkStop":
                 output = run_command(basedirMumble + "mumble rpc stopshouttochannel_1")
@@ -74,11 +118,10 @@ def processCommands():
                 output = run_command(basedirMumble + "mumble")
             case "getchannelinfo":
                 print("here1")
-                output = run_command(basedirMumble + "mumble rpc getchannelinfo") #holt alles in JSON zu den Channels
+                output = run_command(basedirMumble + "mumble rpc getchannelinfo")
                 print("here2")
             case "getUsersInfo":
-                output = run_command(basedirMumble + "mumble rpc getusersinfo") #holt alles in JSON zu den Channels
-                  
+                output = run_command(basedirMumble + "mumble rpc getusersinfo")
             case _:
                 output = "Invalid command"
 

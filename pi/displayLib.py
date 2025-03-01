@@ -246,12 +246,14 @@ class Tile:
                  volume: int = 5,
                  is_called: bool = False,
                  selected: bool = False,
-                 talking: bool = False):
+                 talking: bool = False,
+                 id: int = 0):
         self.name = name
         self.volume = volume
         self.is_called = is_called
         self.selected = selected
         self.talking = talking
+        self.id = id
 
     def set_volume(self, new_volume: int):
         self.volume = max(0, min(10, new_volume))

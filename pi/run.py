@@ -15,7 +15,7 @@ capture_ports = None
 playback_ports = None
 jackstarted = False
 channels = None
-
+tiles = None 
 def main():
     jackstarted = start_jackd()
     menue()
@@ -52,6 +52,7 @@ def menue():
     #print("Typed text so far:", text)
 
     # 1) Create some tiles
+    global tiles
     tiles = [
         Tile(name="Ch A", volume=5),
         Tile(name="Ch B", volume=0, talking=True),
@@ -317,6 +318,7 @@ def handle_request(data):
             #print(f"Received message from C++: {message}")
             global channels 
             channels = getChannelsFromJson(message)
+            updateTiles(channels)
             # Create a reply message in XML format
             reply = ET.Element("reply")
             success = ET.SubElement(reply, "succeeded")
@@ -326,6 +328,24 @@ def handle_request(data):
         print(f"Error processing request: {e}")
     return b"<reply><succeeded>false</succeeded></reply>"
 
+def updateTiles(channels):
+    global tiles
+    tiles = []
+    for channel in channels:
+        channel_id = channel["id"]
+        channel_name = channel["name"]
+        
+        # Create a Tile for each channel (you can set default states or values as needed)
+        tile_obj = Tile(
+            name=channel_name,
+            volume=0,       # Default volume (change if desired)
+            is_called=False,
+            selected=False,
+            talking=False,
+            id=channel_id
+        )
+        
+        tiles.append(tile_obj)
 
 def getChannelsFromJson(json_string):
 

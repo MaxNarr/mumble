@@ -10,9 +10,8 @@ from displayLib import Tile, TileManager
 import displayLib
 import mumbleRPC
 import jackcontroll
-import UpdaterThread
+from updaterThread import UpdaterThread
 from typing import List
-
 from gpiozero import RotaryEncoder
 from gpiozero import Button
 

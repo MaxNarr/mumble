@@ -204,8 +204,8 @@ BLINK_INTERVAL = 0.5  # seconds
 
 # A base font for smaller text (volume, etc.)
 BASE_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 8)  # For volume or "muted"
-MIN_NAME_FONT_SIZE = 14
+VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 10)  # For volume or "muted"
+MIN_NAME_FONT_SIZE = 11
 MAX_NAME_FONT_SIZE = 30  # channel name tries up to size 30
 
 def current_blink_state() -> bool:

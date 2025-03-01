@@ -182,8 +182,8 @@ def display_german_keyboard_realistic(selected_key=0):
     kb_height = (HEIGHT * 2) // 3  # integer
 
     # We'll leave some horizontal margin on each side
-    margin_x = WIDTH // 20
-    usable_width = WIDTH - 2 * margin_x
+    margin_x = 0 #WIDTH // 20
+    usable_width = WIDTH #- 2 * margin_x
 
     # Create blank image
     img = Image.new("RGB", (WIDTH, HEIGHT), color=(0,0,0))

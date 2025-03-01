@@ -25,7 +25,7 @@ disp.begin()
 WIDTH = disp.width
 HEIGHT = disp.height
 
-# We'll pick a slightly smaller font to fit keys in narrow tiles
+# Smaller font to help fit keys
 FONT = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 12)
 
 
@@ -36,15 +36,14 @@ FONT = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 def get_text_dimensions(text, font):
     """
-    Returns (width, height) of a single-line `text`, using getmask() fallback.
-    For older PIL versions that may lack draw.textsize or font.getsize.
+    Returns (width, height) of single-line `text` using getmask() fallback.
     """
     mask = font.getmask(text)
     return mask.size
 
 def draw_centered_text(draw_obj, x, y, w, h, text, font, color=(255,255,255)):
     """
-    Draw `text` centered inside rectangle (x, y, w, h).
+    Draw `text` centered in rectangle (x, y, w, h).
     """
     text_w, text_h = get_text_dimensions(text, font)
     text_x = x + (w - text_w) // 2
@@ -54,13 +53,10 @@ def draw_centered_text(draw_obj, x, y, w, h, text, font, color=(255,255,255)):
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐
-#  │          DEMOS: 4-TILE, 2-TILE, 2-SIDE-BY-SIDE, 6-MENU         │
+#  │          DEMOS: 4-TILE, 2-TILE, SIDE-BY-SIDE, 6-MENU           │
 #  └────────────────────────────────────────────────────────────────┘
 
 def display_four_tiles(tile_colors=None, label="Channel"):
-    """
-    4 tiles (2x2).
-    """
     if tile_colors is None:
         tile_colors = [(0,0,0)] * 4
 
@@ -80,9 +76,6 @@ def display_four_tiles(tile_colors=None, label="Channel"):
 
 
 def display_two_tiles(tile_colors=None, label="Channel"):
-    """
-    2 tiles (vertical).
-    """
     if tile_colors is None:
         tile_colors = [(0,0,0)] * 2
 
@@ -91,7 +84,7 @@ def display_two_tiles(tile_colors=None, label="Channel"):
 
     tile_w = WIDTH
     tile_h = HEIGHT // 2
-    coords = [(0, 0), (0, tile_h)]
+    coords = [(0,0), (0,tile_h)]
 
     for i, (tx, ty) in enumerate(coords):
         color = tile_colors[i]
@@ -102,9 +95,6 @@ def display_two_tiles(tile_colors=None, label="Channel"):
 
 
 def display_two_tiles_side_by_side(tile_colors=None, label="Channel"):
-    """
-    2 tiles (horizontal).
-    """
     if tile_colors is None:
         tile_colors = [(0,0,0)] * 2
 
@@ -116,11 +106,9 @@ def display_two_tiles_side_by_side(tile_colors=None, label="Channel"):
 
     left_color, right_color = tile_colors
 
-    # Left tile
     draw.rectangle((0, 0, tile_w, tile_h), fill=left_color)
     draw_centered_text(draw, 0, 0, tile_w, tile_h, label, FONT)
 
-    # Right tile
     draw.rectangle((tile_w, 0, WIDTH, tile_h), fill=right_color)
     draw_centered_text(draw, tile_w, 0, tile_w, tile_h, label, FONT)
 
@@ -128,11 +116,6 @@ def display_two_tiles_side_by_side(tile_colors=None, label="Channel"):
 
 
 def display_six_tile_menu(selected_tile=0, labels=None):
-    """
-    6 tiles (2 columns x 3 rows).
-    White border, black background normally;
-    Selected = white background, black text.
-    """
     if labels is None:
         labels = [f"Item {i+1}" for i in range(6)]
 
@@ -142,7 +125,6 @@ def display_six_tile_menu(selected_tile=0, labels=None):
     tile_w = WIDTH // 2
     tile_h = HEIGHT // 3
 
-    # Row-major coords
     tile_coords = []
     idx = 0
     for row in range(3):
@@ -155,18 +137,15 @@ def display_six_tile_menu(selected_tile=0, labels=None):
     for i in range(6):
         tx, ty = tile_coords[i]
         if i == selected_tile:
-            fill_color = (255, 255, 255)  # white
-            text_color = (0, 0, 0)        # black
+            fill_color = (255, 255, 255)
+            text_color = (0, 0, 0)
         else:
-            fill_color = (0, 0, 0)        # black
-            text_color = (255, 255, 255)  # white
+            fill_color = (0, 0, 0)
+            text_color = (255, 255, 255)
 
-        # Draw tile with white border
-        draw.rectangle(
-            (tx, ty, tx + tile_w, ty + tile_h),
-            fill=fill_color,
-            outline=(255, 255, 255)
-        )
+        draw.rectangle((tx, ty, tx + tile_w, ty + tile_h),
+                       fill=fill_color,
+                       outline=(255,255,255))
         draw_centered_text(draw, tx, ty, tile_w, tile_h, labels[i], FONT, text_color)
 
     disp.display(img)
@@ -174,84 +153,78 @@ def display_six_tile_menu(selected_tile=0, labels=None):
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐
-#  │   NEW: GERMAN QWERTZ KEYBOARD, REALISTIC LAYOUT, BOTTOM 2/3   │
+#  │  NEW: GERMAN "QWERTZ" WITHOUT UMLAUTS, ROW 2 FURTHER RIGHT    │
 #  └────────────────────────────────────────────────────────────────┘
 
 def display_german_keyboard_realistic(selected_key=0):
     """
-    Displays a German QWERTZ keyboard in a "more realistic" layout, using only
-    the bottom 2/3 of the screen. 3 rows of keys, each row slightly offset.
-    The layout (30 letters):
+    Bottom 2/3 of screen; row 2 is further to the right.
+    No 'Ä', 'Ü', 'Ö', 'ß'.
+    
+    Layout: 3 rows, with different key counts:
+      Row 0: 10 letters = Q W E R T  Z U I O P
+      Row 1:  9 letters = A S D F G  H J K L
+      Row 2:  7 letters = Y X C V B  N M
 
-      Row 0: Q W E R T  Z U I O P
-      Row 1: A S D F G  H J K L Ö
-      Row 2: Y X C V B  N M Ä Ü ß
-
-    Row offsets (in 'key_width' units):
-      row0_offset = 0.0
-      row1_offset = 0.5  (half-key offset)
-      row2_offset = 0.2  (some offset for demonstration)
-
-    The user can highlight a selected key by inverting colors.
+    row_offsets = [0.0, 0.5, 1.0] to stagger them horizontally.
     """
-    row0 = ["Q","W","E","R","T","Z","U","I","O","P"]
-    row1 = ["A","S","D","F","G","H","J","K","L","Ö"]
-    row2 = ["Y","X","C","V","B","N","M","Ä","Ü","ß"]
-    all_keys = [row0, row1, row2]
 
-    # We'll only use bottom 2/3 of the screen
-    top_y = HEIGHT // 3        # integer
-    kb_height = (HEIGHT * 2) // 3
-    rows = 3
+    row0 = ["Q","W","E","R","T","Z","U","I","O","P"]       # 10
+    row1 = ["A","S","D","F","G","H","J","K","L"]           # 9
+    row2 = ["Y","X","C","V","B","N","M"]                   # 7
+    rows_data = [row0, row1, row2]
 
-    # Row offsets in fraction of one key width
-    # Adjust as desired to mimic a real keyboard's staggering
-    row_offsets = [0.0, 0.5, 0.2]
+    row_offsets = [0.0, 0.5, 1.0]  # shift row2 more to the right
+    total_rows = len(rows_data)    # 3
 
-    # For each row, we have 10 keys
-    cols = 10
+    # Keyboard area = bottom 2/3
+    top_y = HEIGHT // 3
+    kb_height = (HEIGHT * 2) // 3  # integer
 
-    # We'll define a left/right margin so keys aren't flush to edges.
-    margin_x = WIDTH // 20  # ~5% margin on each side
+    # We'll leave some horizontal margin on each side
+    margin_x = WIDTH // 20
     usable_width = WIDTH - 2 * margin_x
-
-    # Key width is the 'usable' area / #keys, so row0 fits exactly in that area
-    key_width = usable_width / cols
-    row_height = kb_height / rows
 
     # Create blank image
     img = Image.new("RGB", (WIDTH, HEIGHT), color=(0,0,0))
     draw = ImageDraw.Draw(img)
 
-    # For each row
-    index = 0  # which key we are on (0..29)
-    for r in range(rows):
-        offset_x = margin_x + int(row_offsets[r] * key_width)  # pixel offset
-        row_y = int(top_y + r * row_height)
+    # We'll loop each row, compute that row's key width from how many letters
+    # are in that row, so it fills ~usable_width.
+    # Each row has a fraction offset (row_offsets[r]) in "key-width units."
+    index = 0  # which key is being selected (0..25 in total)
 
-        # For each column in this row
-        for c in range(cols):
-            letter = all_keys[r][c]
-            x = int(offset_x + c * key_width)
+    for r, row_letters in enumerate(rows_data):
+        # number of columns in this row
+        num_cols = len(row_letters)
+        # each key's size
+        row_y = int(top_y + r * (kb_height / total_rows))
+        row_h = int(kb_height / total_rows)
+        key_width = usable_width / num_cols
+        offset_pixels = int(row_offsets[r] * key_width)  # shift row by fraction of one key width
+
+        for c, letter in enumerate(row_letters):
+            x = margin_x + offset_pixels + int(c * key_width)
             y = row_y
             w = int(key_width)
-            h = int(row_height)
+            h = row_h
 
+            # Check if this is the selected key
             if index == selected_key:
                 fill_color = (255,255,255)  # white
                 text_color = (0,0,0)        # black
             else:
                 fill_color = (0,0,0)        # black
-                text_color = (255,255,255)  # white
+                text_color = (255,255,255)
 
-            # Draw key with white outline
+            # Draw key w/ white outline
             draw.rectangle(
                 (x, y, x + w, y + h),
                 fill=fill_color,
                 outline=(255,255,255)
             )
 
-            # Draw letter in center
+            # Center letter text
             draw_centered_text(draw, x, y, w, h, letter, FONT, text_color)
 
             index += 1
@@ -298,15 +271,15 @@ if __name__ == "__main__":
     print("Displaying 6-tile menu with selection...")
     menu_labels = ["Option A", "Option B", "Option C", "Option D", "Option E", "Option F"]
     for i in range(6):
-        print(f"Selecting tile index {i} = {menu_labels[i]}")
         display_six_tile_menu(selected_tile=i, labels=menu_labels)
         time.sleep(1)
 
-    # 5) NEW DEMO: GERMAN KEYBOARD (BOTTOM 2/3) WITH OFFSET ROWS
-    print("Displaying realistic German QWERTZ keyboard layout (bottom 2/3)...")
-    # We'll iterate over all 30 letters
-    for i in range(30):
-        display_german_keyboard_realistic(selected_key=i)
-        time.sleep(0.3)
+    # 5) DEMO: NEW GERMAN KEYBOARD (NO UMLAUTS), SHIFT ROW 2 RIGHT
+    print("Displaying 26-letter German QWERTZ layout, last row further right...")
+    # Iterate through all 26 letters so user sees each one selected
+    total_letters = 26
+    for sel_index in range(total_letters):
+        display_german_keyboard_realistic(selected_key=sel_index)
+        time.sleep(0.4)
 
     print("Done!")

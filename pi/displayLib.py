@@ -4,7 +4,6 @@ import time
 from PIL import Image, ImageDraw, ImageFont
 import st7735
 import math
-import mumbleRPC
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐
@@ -256,6 +255,7 @@ class Tile:
         self.id = id
 
     def set_volume(self, new_volume: int):
+        import mumbleRPC
         self.volume = max(-6, min(5, new_volume))
         mumbleRPC.listen(self)
 

@@ -174,7 +174,7 @@ def display_german_keyboard_realistic(selected_key=0):
     row2 = ["Y","X","C","V","B","N","M"]                   # 7
     rows_data = [row0, row1, row2]
 
-    row_offsets = [0.0, 0.5, 1.0]  # shift row2 more to the right
+    row_offsets = [0.0, 0.3, 0.6]  # shift row2 more to the right
     total_rows = len(rows_data)    # 3
 
     # Keyboard area = bottom 2/3

@@ -200,7 +200,7 @@ def get_textfield_content():
 
 
 # We’ll define a "blink" rate for is_called
-BLINK_INTERVAL = 0.5  # seconds
+BLINK_INTERVAL = 0.2  # seconds
 
 # A base font for smaller text (volume, etc.)
 BASE_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"

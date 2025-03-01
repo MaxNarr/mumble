@@ -306,10 +306,22 @@ def current_blink_state() -> bool:
     cycle = math.floor((t / BLINK_INTERVAL))  # integer stepping
     return (cycle % 2) == 0
 
+
+def get_text_dimensions(text, font):
+    """
+    Returns (width, height) of single-line `text` using getmask().
+    For older PIL versions that don't have font.getsize or draw.textsize.
+    """
+    # getmask() returns a bitmap mask of the rendered text
+    mask = font.getmask(text)
+    return mask.size
+
+
 #
 # ┌──────────────────────────────────────────────────────────┐
 # │  2) TILE CLASS                                          │
 # └──────────────────────────────────────────────────────────┘
+
 
 class Tile:
     """
@@ -379,7 +391,7 @@ class Tile:
         name_font_size = MAX_NAME_FONT_SIZE
         while name_font_size >= MIN_NAME_FONT_SIZE:
             trial_font = ImageFont.truetype(BASE_FONT_PATH, name_font_size)
-            text_w, text_h = trial_font.getsize(self.name)
+            text_w, text_h = get_text_dimensions(self.name, trial_font)
             # If it fits in width, and not too tall for half the tile, accept it
             # (We assume the name takes up ~ half the tile height at most.)
             if text_w <= w and text_h <= (h // 2):
@@ -389,7 +401,7 @@ class Tile:
         else:
             # If we exit the while without break => fallback
             trial_font = ImageFont.truetype(BASE_FONT_PATH, MIN_NAME_FONT_SIZE)
-            text_w, text_h = trial_font.getsize(self.name)
+            text_w, text_h = get_text_dimensions(self.name, trial_font)
 
         # Center horizontally, place near top (some padding)
         name_x = x + (w - text_w)//2

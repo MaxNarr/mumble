@@ -2,9 +2,9 @@ from gpiozero import RotaryEncoder
 from gpiozero import Button
 from time import time
 
-#encoder = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  # Replace with your GPIO pins
+encoder = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  # Replace with your GPIO pins
 
-#last_position = encoder.value
+last_position = encoder.value
 last_press_time = 0
 double_press_threshold = 0.7  # Maximum time (seconds) between presses
 
@@ -25,17 +25,11 @@ button = Button(19,pull_up=True, bounce_time=0.02)
 button.when_pressed = on_press  # Trigger on press
 button.when_released = on_release  # Trigger on release
 
-button2 = Button(17,pull_up=True, bounce_time=0.02)
-button2.when_pressed = on_press  # Trigger on press
-
-button3 = Button(18,pull_up=True, bounce_time=0.02)
-button3.when_pressed = on_release  # Trigger on press
-
 while True:
     pass
-#    if encoder.value != last_position:
-#        print(f"Rotary position: {encoder.value}")
-#        last_position = encoder.value
+    if encoder.value != last_position:
+        print(f"Rotary position: {encoder.value}")
+        last_position = encoder.value
 
 
 

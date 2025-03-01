@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import os
 import threading
 import json
+from displayLib import Tile, TileManager
 import displayLib
 
 SOCKET_PATH = f"/run/user/{os.getuid()}/python_rpc_serverSocket"
@@ -22,33 +23,64 @@ def main():
 
 def menue():
  # 1) Use the tile demos
-    displayLib.display_four_tiles(
-        tile_colors=[(0,0,0),(0,0,255),(255,255,255),(255,0,0)],
-        label="Channel"
-    )
-    time.sleep(2)
+ 
+ #   displayLib.display_four_tiles(
+ #       tile_colors=[(0,0,0),(0,0,255),(255,255,255),(255,0,0)],
+ #       label="Channel"
+ #   )
+ #   time.sleep(2)
 
-    displayLib.display_two_tiles(label="Two Tiles Demo")
-    time.sleep(2)
+ #   displayLib.display_two_tiles(label="Two Tiles Demo")
+ #   time.sleep(2)
 
     # 2) Use the 6-tile menu
-    displayLib.display_six_tile_menu(selected_tile=2,
-                                         labels=["Option A","Option B","Option C",
-                                                 "Option D","Option E","Option F"])
-    time.sleep(2)
+    #displayLib.display_six_tile_menu(selected_tile=2,
+            #labels=["Option A","Option B","Option C",
+             #       "Option D","Option E","Option F"])
+    #time.sleep(2)
 
     # 3) Use the keyboard
     #    We'll 'scroll' right +1, then select, etc.
-    displayLib.process_input(+1, False)  # move selection right
-    time.sleep(1)
+    #displayLib.process_input(+1, False)  # move selection right
+    #time.sleep(1)
 
-    displayLib.process_input(0, True)    # select current letter
-    time.sleep(1)
+    #displayLib.process_input(0, True)    # select current letter
+    #time.sleep(1)
 
     # Get typed text
-    text = displayLib.get_textfield_content()
-    print("Typed text so far:", text)
+    #text = displayLib.get_textfield_content()
+    #print("Typed text so far:", text)
 
+    # 1) Create some tiles
+    tiles = [
+        Tile(name="Channel A", volume=5),
+        Tile(name="Channel B", volume=0, talking=True),
+        Tile(name="Channel C", volume=8, is_called=True),
+        Tile(name="Channel D", volume=2),
+        Tile(name="Channel E", volume=5),
+        Tile(name="Channel F", volume=10),
+        # ... add as many as you want ...
+    ]
+
+    # 2) Create a TileManager
+    manager = TileManager(tiles)
+
+    # 3) Render page 0 with layout "4" (4 tiles per page)
+    manager.render(page_number=0, layout="4")
+    time.sleep(3)
+
+    # 4) Toggle some states
+    tiles[0].selected = True
+    tiles[2].is_called = False
+    tiles[2].talking = True
+
+    # Re-render the same page
+    manager.render(page_number=0, layout="4")
+    time.sleep(3)
+
+    # 5) Switch to layout "2" (2 tiles per page) on page 1, for example
+    manager.render(page_number=1, layout="2")
+    time.sleep(3)
 
 
 def run_command(command, timeout=10):

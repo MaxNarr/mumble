@@ -414,7 +414,7 @@ class Tile:
         if self.volume == 0:
             # muted => show a red box with "muted" in white text
             msg = "muted"
-            msg_w, msg_h = vol_font.getsize(msg)
+            msg_w, msg_h = get_text_dimensions(msg, vol_font)
             # Let's place it below the name
             vol_x = x + (w - msg_w)//2
             vol_y = name_y + text_h + 5  # a little spacing from name
@@ -432,7 +432,7 @@ class Tile:
         else:
             # show "Volume: X"
             msg = f"Volume: {self.volume}"
-            msg_w, msg_h = vol_font.getsize(msg)
+            msg_w, msg_h = get_text_dimensions(msg, vol_font)
             vol_x = x + (w - msg_w)//2
             vol_y = name_y + text_h + 5
             draw_obj.text((vol_x, vol_y), msg, font=vol_font, fill=text_color)

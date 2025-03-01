@@ -286,26 +286,44 @@ class Tile:
                            fill=bg_color,
                            outline=(255,255,255))
 
-        # Large name at top
+                # Large name at top
+        left_margin = 5
+        right_margin = 5
+        top_margin = 5
+
+        # The maximum text width we allow (subtract left/right margins)
+        max_text_width = w - left_margin - right_margin
+        # The maximum text height is half the tile, minus the top margin
+        max_text_height = (h // 2) - top_margin
+
         name_font_size = MAX_NAME_FONT_SIZE
         best_font = None
+
         while name_font_size >= MIN_NAME_FONT_SIZE:
             trial_font = ImageFont.truetype(BASE_FONT_PATH, name_font_size)
             tw, th = get_text_dimensions(self.name, trial_font)
-            if tw <= w and th <= (h // 2):
+
+            # Check if text width/height fit within our margins
+            if tw <= max_text_width and th <= max_text_height:
                 best_font = trial_font
                 break
             name_font_size -= 1
 
+        # Fallback if we never found a suitable size
         if best_font is None:
             best_font = ImageFont.truetype(BASE_FONT_PATH, MIN_NAME_FONT_SIZE)
             tw, th = get_text_dimensions(self.name, best_font)
         else:
             tw, th = get_text_dimensions(self.name, best_font)
 
-        name_x = x + (w - tw)//2
-        name_y = y + 2
+        # Now place the text:
+        # - x + left_margin is our "left edge"
+        # - we center the text in the available horizontal space: max_text_width
+        name_x = x + left_margin + (max_text_width - tw) // 2
+        name_y = y + top_margin
+
         draw_obj.text((name_x, name_y), self.name, font=best_font, fill=text_color)
+
 
         # Then volume or muted
         if self.volume == 0:

@@ -25,24 +25,21 @@ disp.begin()
 WIDTH = disp.width
 HEIGHT = disp.height
 
-# Choose a TTF font (adjust path/size if needed)
-FONT = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 14)
+# Font a little smaller to fit more letters in small tiles
+FONT = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 12)
 
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐
-#  │                  TEXT DIMENSION FALLBACK                      │
+#  │          TEXT DIMENSION FALLBACK FOR OLDER PIL VERSIONS       │
 #  └────────────────────────────────────────────────────────────────┘
-# For older Pillow versions lacking draw.textsize or font.getsize
 
 def get_text_dimensions(text, font):
     """
-    Returns (width, height) of single-line `text` 
-    using a fallback via getmask().
+    Returns (width, height) of single-line `text` using getmask() fallback.
     """
     mask = font.getmask(text)
     return mask.size
-
 
 def draw_centered_text(draw_obj, x, y, w, h, text, font, color=(255,255,255)):
     """
@@ -56,108 +53,96 @@ def draw_centered_text(draw_obj, x, y, w, h, text, font, color=(255,255,255)):
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐
-#  │          EXISTING DEMOS: 4-TILE AND 2-TILE LAYOUTS            │
+#  │                EXISTING DEMO FUNCTIONS: 4 & 2 TILES           │
 #  └────────────────────────────────────────────────────────────────┘
 
 def display_four_tiles(tile_colors=None, label="Channel"):
     """
-    Draws 4 tiles (2x2):
+    4 tiles (2x2):
       +----------+----------+
-      |  Tile 0  |  Tile 1  |
+      |  0       |   1      |
       +----------+----------+
-      |  Tile 2  |  Tile 3  |
+      |  2       |   3      |
       +----------+----------+
     """
     if tile_colors is None:
         tile_colors = [(0,0,0)] * 4  # all black
-
     img = Image.new("RGB", (WIDTH, HEIGHT), color=(0, 0, 0))
     draw = ImageDraw.Draw(img)
 
     tile_w = WIDTH // 2
     tile_h = HEIGHT // 2
-
-    coords = [
-        (0,       0),      
-        (tile_w,  0),
-        (0,       tile_h),
-        (tile_w,  tile_h)
-    ]
+    coords = [(0,0), (tile_w,0), (0,tile_h), (tile_w,tile_h)]
 
     for i, (tx, ty) in enumerate(coords):
         color = tile_colors[i]
         draw.rectangle((tx, ty, tx + tile_w, ty + tile_h), fill=color)
-        draw_centered_text(draw, tx, ty, tile_w, tile_h, label, FONT, (255,255,255))
+        draw_centered_text(draw, tx, ty, tile_w, tile_h, label, FONT)
 
     disp.display(img)
 
 
 def display_two_tiles(tile_colors=None, label="Channel"):
     """
-    Draws 2 tiles (vertical):
+    2 tiles (vertical):
       +----------+
-      |  Tile 0  |
+      |   0      |
       +----------+
-      |  Tile 1  |
+      |   1      |
       +----------+
     """
     if tile_colors is None:
         tile_colors = [(0,0,0)] * 2
-
     img = Image.new("RGB", (WIDTH, HEIGHT), color=(0, 0, 0))
     draw = ImageDraw.Draw(img)
 
     tile_w = WIDTH
     tile_h = HEIGHT // 2
-
-    coords = [(0, 0), (0, tile_h)]
+    coords = [(0,0), (0,tile_h)]
 
     for i, (tx, ty) in enumerate(coords):
         color = tile_colors[i]
         draw.rectangle((tx, ty, tx + tile_w, ty + tile_h), fill=color)
-        draw_centered_text(draw, tx, ty, tile_w, tile_h, label, FONT, (255,255,255))
+        draw_centered_text(draw, tx, ty, tile_w, tile_h, label, FONT)
 
     disp.display(img)
 
 
 def display_two_tiles_side_by_side(tile_colors=None, label="Channel"):
     """
-    Draws 2 tiles (horizontal):
+    2 tiles (horizontal):
       +----------+----------+
-      |  Tile 0  |  Tile 1  |
+      |   0      |    1     |
       +----------+----------+
     """
     if tile_colors is None:
         tile_colors = [(0,0,0)] * 2
-
     img = Image.new("RGB", (WIDTH, HEIGHT), color=(0, 0, 0))
     draw = ImageDraw.Draw(img)
 
     tile_w = WIDTH // 2
     tile_h = HEIGHT
+    left_color, right_color = tile_colors
 
     # Left tile
-    left_color = tile_colors[0]
     draw.rectangle((0, 0, tile_w, tile_h), fill=left_color)
-    draw_centered_text(draw, 0, 0, tile_w, tile_h, label, FONT, (255,255,255))
+    draw_centered_text(draw, 0, 0, tile_w, tile_h, label, FONT)
 
     # Right tile
-    right_color = tile_colors[1]
     draw.rectangle((tile_w, 0, WIDTH, tile_h), fill=right_color)
-    draw_centered_text(draw, tile_w, 0, tile_w, tile_h, label, FONT, (255,255,255))
+    draw_centered_text(draw, tile_w, 0, tile_w, tile_h, label, FONT)
 
     disp.display(img)
 
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐
-#  │      NEW: 6-TILE MENU (2 COLUMNS x 3 ROWS) + SELECTION        │
+#  │               EXISTING: 6-TILE MENU (2 x 3)                   │
 #  └────────────────────────────────────────────────────────────────┘
 
 def display_six_tile_menu(selected_tile=0, labels=None):
     """
-    Draws a 6-tile menu in 2 columns x 3 rows:
-    
+    6 tiles (2 columns x 3 rows):
       +---------+---------+
       |   0     |    1    |
       +---------+---------+
@@ -165,32 +150,19 @@ def display_six_tile_menu(selected_tile=0, labels=None):
       +---------+---------+
       |   4     |    5    |
       +---------+---------+
-    
-    Each tile has:
-      - A white border
-      - A black background w/ white text if NOT selected
-      - A white background w/ black text if SELECTED
-      
-    Arguments:
-      selected_tile (int) - which tile index (0-5) is highlighted
-      labels (list)       - 6 strings for each tile, or None if you want defaults
+    White border, black background normally;
+    Selected tile = white fill, black text.
     """
     if labels is None:
-        # Default labels if none supplied
         labels = [f"Item {i+1}" for i in range(6)]
 
-    # Create blank image
     img = Image.new("RGB", (WIDTH, HEIGHT), color=(0, 0, 0))
     draw = ImageDraw.Draw(img)
 
     tile_w = WIDTH // 2
     tile_h = HEIGHT // 3
 
-    # Coordinates for each tile
-    # Row-major order: 
-    # 0 -> (0,0),    1 -> (tile_w,0)
-    # 2 -> (0,tile_h), 3 -> (tile_w, tile_h)
-    # 4 -> (0,2*tile_h), 5 -> (tile_w, 2*tile_h)
+    # Generate tile coords in row-major order
     tile_coords = []
     index = 0
     for row in range(3):
@@ -200,30 +172,83 @@ def display_six_tile_menu(selected_tile=0, labels=None):
             tile_coords.append((x, y))
             index += 1
 
-    # Draw each tile
     for i in range(6):
         tx, ty = tile_coords[i]
-
         if i == selected_tile:
-            # SELECTED: white background, black text
             fill_color = (255, 255, 255)
             text_color = (0, 0, 0)
         else:
-            # NOT SELECTED: black background, white text
             fill_color = (0, 0, 0)
             text_color = (255, 255, 255)
 
-        # Draw tile rectangle with a white outline
+        # Draw tile with white border
         draw.rectangle(
-            (tx, ty, tx + tile_w, ty + tile_h), 
-            fill=fill_color, 
+            (tx, ty, tx + tile_w, ty + tile_h),
+            fill=fill_color,
+            outline=(255, 255, 255)
+        )
+        draw_centered_text(draw, tx, ty, tile_w, tile_h, labels[i], FONT, text_color)
+
+    disp.display(img)
+
+
+#
+#  ┌────────────────────────────────────────────────────────────────┐
+#  │   NEW: GERMAN KEYBOARD (3 ROWS x 10 COLUMNS = 30 LETTERS)     │
+#  └────────────────────────────────────────────────────────────────┘
+
+def display_german_keyboard(selected_key=0):
+    """
+    Displays a German QWERTZ layout, 30 letters total, 
+    arranged in 3 rows x 10 columns:
+
+      Row 0: Q W E R T Z U I O P
+      Row 1: A S D F G H J K L Ö
+      Row 2: Y X C V B N M Ä Ü ß
+
+    Each letter is in a tile with a white border.
+    If selected, the tile inverts (white background, black text).
+    """
+    # German QWERTZ letters (30 total):
+    keyboard_letters = [
+        "Q","W","E","R","T","Z","U","I","O","P",
+        "A","S","D","F","G","H","J","K","L","Ö",
+        "Y","X","C","V","B","N","M","Ä","Ü","ß"
+    ]
+
+    img = Image.new("RGB", (WIDTH, HEIGHT), color=(0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    # 3 rows x 10 columns
+    cols = 10
+    rows = 3
+    tile_w = WIDTH // cols
+    tile_h = HEIGHT // rows
+
+    for i in range(len(keyboard_letters)):
+        row = i // cols
+        col = i % cols
+        tx = col * tile_w
+        ty = row * tile_h
+
+        if i == selected_key:
+            fill_color = (255, 255, 255)  # white background
+            text_color = (0, 0, 0)        # black text
+        else:
+            fill_color = (0, 0, 0)        # black background
+            text_color = (255, 255, 255)  # white text
+
+        # Draw key with white outline
+        draw.rectangle(
+            (tx, ty, tx + tile_w, ty + tile_h),
+            fill=fill_color,
             outline=(255, 255, 255)
         )
 
-        # Draw centered text
-        draw_centered_text(draw, tx, ty, tile_w, tile_h, labels[i], FONT, text_color)
+        # Draw the letter
+        letter = keyboard_letters[i]
+        draw_centered_text(draw, tx, ty, tile_w, tile_h, letter, FONT, text_color)
 
-    # Send image to display
     disp.display(img)
 
 
@@ -233,7 +258,6 @@ def display_six_tile_menu(selected_tile=0, labels=None):
 #  └────────────────────────────────────────────────────────────────┘
 
 if __name__ == "__main__":
-
     # 1) DEMO: 4 TILES
     print("Displaying 4 tiles...")
     colors_4 = [
@@ -243,7 +267,7 @@ if __name__ == "__main__":
         (255, 0, 0)      # red
     ]
     display_four_tiles(colors_4, label="Channel")
-    time.sleep(3)
+    time.sleep(2)
 
     # 2) DEMO: 2 TILES (VERTICAL)
     print("Displaying 2 tiles vertically...")
@@ -252,7 +276,7 @@ if __name__ == "__main__":
         (0, 255, 0)      # green bottom
     ]
     display_two_tiles(colors_2_vertical, label="Channel")
-    time.sleep(3)
+    time.sleep(2)
 
     # 3) DEMO: 2 TILES (HORIZONTAL)
     print("Displaying 2 tiles horizontally...")
@@ -261,16 +285,21 @@ if __name__ == "__main__":
         (0, 255, 255)    # cyan right
     ]
     display_two_tiles_side_by_side(colors_2_horizontal, label="Channel")
-    time.sleep(3)
+    time.sleep(2)
 
-    # 4) NEW DEMO: 6-TILE MENU 
+    # 4) DEMO: 6-TILE MENU
     print("Displaying 6-tile menu with selection...")
     menu_labels = ["Option A", "Option B", "Option C", "Option D", "Option E", "Option F"]
-    
-    # Iterate through each tile (0-5) and select it
     for i in range(6):
         print(f"Selecting tile index {i} ({menu_labels[i]})")
         display_six_tile_menu(selected_tile=i, labels=menu_labels)
         time.sleep(1)
+
+    # 5) NEW DEMO: GERMAN KEYBOARD
+    print("Displaying German QWERTZ keyboard with selection...")
+    # We'll iterate through all 30 letters
+    for i in range(30):
+        display_german_keyboard(selected_key=i)
+        time.sleep(0.3)
 
     print("Done!")

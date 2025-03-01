@@ -52,96 +52,6 @@ def draw_centered_text(draw_obj, x, y, w, h, text, font, color=(255,255,255)):
     draw_obj.text((text_x, text_y), text, font=font, fill=color)
 
 
-#
-#  ┌────────────────────────────────────────────────────────────────┐
-#  │                   TILE DEMO FUNCTIONS                         │
-#  └────────────────────────────────────────────────────────────────┘
-
-def display_four_tiles(tile_colors=None, label="Channel"):
-    """
-    Draws 4 tiles in a 2x2 grid:
-      +----------+----------+
-      |  Tile 0  |  Tile 1  |
-      +----------+----------+
-      |  Tile 2  |  Tile 3  |
-      +----------+----------+
-    """
-    if tile_colors is None:
-        tile_colors = [(0,0,0)] * 4  # default all black
-
-    img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0, 0, 0))
-    draw = ImageDraw.Draw(img)
-
-    tile_w = DISPLAY_WIDTH // 2
-    tile_h = DISPLAY_HEIGHT // 2
-    coords = [
-        (0,        0),
-        (tile_w,   0),
-        (0,        tile_h),
-        (tile_w,   tile_h)
-    ]
-
-    for i, (tx, ty) in enumerate(coords):
-        color = tile_colors[i]
-        draw.rectangle((tx, ty, tx + tile_w, ty + tile_h), fill=color)
-        draw_centered_text(draw, tx, ty, tile_w, tile_h, label, FONT)
-
-    disp.display(img)
-
-
-def display_two_tiles(tile_colors=None, label="Channel"):
-    """
-    Draws 2 tiles stacked vertically:
-      +----------+
-      |  Tile 0  |
-      +----------+
-      |  Tile 1  |
-      +----------+
-    """
-    if tile_colors is None:
-        tile_colors = [(0,0,0)] * 2
-
-    img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0, 0, 0))
-    draw = ImageDraw.Draw(img)
-
-    tile_w = DISPLAY_WIDTH
-    tile_h = DISPLAY_HEIGHT // 2
-    coords = [(0, 0), (0, tile_h)]
-
-    for i, (tx, ty) in enumerate(coords):
-        color = tile_colors[i]
-        draw.rectangle((tx, ty, tx + tile_w, ty + tile_h), fill=color)
-        draw_centered_text(draw, tx, ty, tile_w, tile_h, label, FONT)
-
-    disp.display(img)
-
-
-def display_two_tiles_side_by_side(tile_colors=None, label="Channel"):
-    """
-    Draws 2 tiles side-by-side (horizontal):
-      +----------+----------+
-      |  Tile 0  |  Tile 1  |
-      +----------+----------+
-    """
-    if tile_colors is None:
-        tile_colors = [(0,0,0)] * 2
-
-    img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0, 0, 0))
-    draw = ImageDraw.Draw(img)
-
-    tile_w = DISPLAY_WIDTH // 2
-    tile_h = DISPLAY_HEIGHT
-
-    # Left tile
-    draw.rectangle((0, 0, tile_w, tile_h), fill=tile_colors[0])
-    draw_centered_text(draw, 0, 0, tile_w, tile_h, label, FONT)
-
-    # Right tile
-    draw.rectangle((tile_w, 0, DISPLAY_WIDTH, tile_h), fill=tile_colors[1])
-    draw_centered_text(draw, tile_w, 0, tile_w, tile_h, label, FONT)
-
-    disp.display(img)
-
 
 def display_six_tile_menu(selected_tile=0, labels=None):
     """
@@ -299,19 +209,18 @@ MAX_NAME_FONT_SIZE = 30  # channel name tries up to size 30
 
 def current_blink_state() -> bool:
     """
-    Returns True if we should draw the 'on' state of a blink,
-    or False if we should draw the 'off' state.
+    Returns True if we should draw the 'on' (red) state,
+    or False if we should draw the 'off' (black) state.
     We toggle every BLINK_INTERVAL seconds.
     """
     now = time.time()
     cycle = math.floor(now / BLINK_INTERVAL)
-    # Even cycle => 'on', odd cycle => 'off'
     return (cycle % 2) == 0
 
 def get_text_dimensions(text, font):
     """
     Returns (width, height) of single-line `text` using getmask().
-    This works even on older Pillow versions lacking font.getsize/draw.textsize.
+    (Fallback for older PIL versions lacking font.getsize or draw.textsize.)
     """
     mask = font.getmask(text)
     return mask.size
@@ -319,20 +228,21 @@ def get_text_dimensions(text, font):
 
 #
 #  ┌──────────────────────────────────────────────────────────┐
-#  │  2) TILE CLASS                                          │
+#  │  TILE CLASS                                             │
 #  └──────────────────────────────────────────────────────────┘
 
 class Tile:
     """
-    One tile with various states:
-      - name (string)
+    One tile with states:
+      - name
       - volume (0..10; 0 => muted => "muted" red box)
-      - is_called (bool => blink entire tile red)
-      - selected (bool => white background, black text)
-      - talking (bool => entire tile green)
+      - is_called => blink red
+      - selected => white bg, black text
+      - talking => green bg
     """
 
-    def __init__(self, name: str, volume: int = 5,
+    def __init__(self, name: str,
+                 volume: int = 5,
                  is_called: bool = False,
                  selected: bool = False,
                  talking: bool = False):
@@ -343,53 +253,39 @@ class Tile:
         self.talking = talking
 
     def set_volume(self, new_volume: int):
-        """Update volume (0..10). If 0 => tile is muted."""
         self.volume = max(0, min(10, new_volume))
 
-    def draw(self, draw_obj: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int):
-        """
-        Draw the tile in rectangle (x,y,w,h).
-        Behavior priorities (highest to lowest):
-          1) selected => white bg, black text
-          2) is_called => blink red
-          3) talking => green
-          4) else => black bg, white text
-
-        Name at top (largest possible font up to MAX_NAME_FONT_SIZE).
-        Volume or "muted" in a smaller font (VOLUME_FONT) below the name.
-        "muted" has a red rectangle behind the text.
-
-        We also add a white outline around the tile.
-        """
-        # 1) Determine background + text color
+    def draw(self, draw_obj: ImageDraw.ImageDraw,
+             x: int, y: int, w: int, h: int):
+        # Decide background + text colors
         bg_color = (0,0,0)
         text_color = (255,255,255)
 
         if self.selected:
-            bg_color = (255,255,255)   # white
-            text_color = (0,0,0)       # black
+            # Highest priority: selected
+            bg_color = (255,255,255)  # white
+            text_color = (0,0,0)      # black
         else:
             if self.is_called:
                 # blink red if is_called
                 if current_blink_state():
-                    bg_color = (0,0,255)   # red
+                    bg_color = (255,0,0)  # red
                 else:
-                    bg_color = (0,0,0)     # black
+                    bg_color = (0,0,0)    # black
                 text_color = (255,255,255)
             elif self.talking:
-                bg_color = (0,128,0)      # green
+                bg_color = (0,128,0)     # green
                 text_color = (255,255,255)
             else:
-                bg_color = (0,0,0)        # black
+                bg_color = (0,0,0)
                 text_color = (255,255,255)
 
-        # 2) Fill the tile background and draw a white frame
-        draw_obj.rectangle((x, y, x + w, y + h),
+        # Draw the tile background + white border
+        draw_obj.rectangle((x, y, x+w, y+h),
                            fill=bg_color,
                            outline=(255,255,255))
 
-        # 3) Draw the tile name in the top portion
-        #    We'll attempt different font sizes from MAX_NAME_FONT_SIZE down.
+        # Large name at top
         name_font_size = MAX_NAME_FONT_SIZE
         best_font = None
         while name_font_size >= MIN_NAME_FONT_SIZE:
@@ -401,32 +297,28 @@ class Tile:
             name_font_size -= 1
 
         if best_font is None:
-            # fallback if none found
             best_font = ImageFont.truetype(BASE_FONT_PATH, MIN_NAME_FONT_SIZE)
             tw, th = get_text_dimensions(self.name, best_font)
         else:
             tw, th = get_text_dimensions(self.name, best_font)
 
-        # place near top center
         name_x = x + (w - tw)//2
         name_y = y + 2
         draw_obj.text((name_x, name_y), self.name, font=best_font, fill=text_color)
 
-        # 4) Draw volume or "muted" below the name
+        # Then volume or muted
         if self.volume == 0:
-            # Show "muted" with red background
             msg = "muted"
             msg_w, msg_h = get_text_dimensions(msg, VOLUME_FONT)
             vol_x = x + (w - msg_w)//2
             vol_y = name_y + th + 5
-
             pad = 2
+            # red box behind "muted"
             draw_obj.rectangle((vol_x - pad, vol_y - pad,
                                 vol_x + msg_w + pad, vol_y + msg_h + pad),
-                               fill=(0,0,255))  # red behind "muted"
+                               fill=(255,0,0))
             draw_obj.text((vol_x, vol_y), msg, font=VOLUME_FONT, fill=(255,255,255))
         else:
-            # show "Volume: X"
             msg = f"Vol.: {self.volume}"
             msg_w, msg_h = get_text_dimensions(msg, VOLUME_FONT)
             vol_x = x + (w - msg_w)//2
@@ -436,16 +328,17 @@ class Tile:
 
 #
 #  ┌──────────────────────────────────────────────────────────┐
-#  │  3) TILEMANAGER CLASS                                   │
+#  │  TILEMANAGER CLASS                                      │
 #  └──────────────────────────────────────────────────────────┘
 
 class TileManager:
     """
-    Manages a list of Tile objects, supports paging & 2 layouts:
+    Manages a list of Tile objects with paging + layouts:
       layout="4" => 4 tiles/page (2x2)
       layout="2" => 2 tiles/page side-by-side
-    The top 1/4 of screen is used for displaying the page number,
-    while the bottom 3/4 is used for tiles.
+
+    The top 1/4 of screen is for a page bar. We also have a boolean
+    page_selected => if True, we invert the bar colors.
     """
 
     def __init__(self, tiles):
@@ -453,15 +346,25 @@ class TileManager:
         tiles: list of Tile objects
         """
         self.tiles = tiles
+        self.page_selected = False  # new state: highlight top bar if True
+
+        # Keep track of the last page + layout used, so 'update()' can re-render
+        self.last_page = 0
+        self.last_layout = "4"
+
+    def select_page_bar(self, selected: bool):
+        """Set whether the page bar is selected (inverted colors)."""
+        self.page_selected = selected
 
     def render(self, page_number: int = 0, layout: str = "4"):
         """
-        Draw a page of tiles onto the ST7735.
-
-        layout="4" => 4 tiles/page (indexes: page*4..page*4+3)
-        layout="2" => 2 tiles/page (indexes: page*2..page*2+1)
+        Draws the page of tiles onto ST7735. Also draws a page bar at the top.
+        Save page_number + layout so we can re-call them in update().
         """
-        # 1) Which subset of tiles are on this page?
+        self.last_page = page_number
+        self.last_layout = layout
+
+        # 1) Determine which tiles are on this page
         if layout == "4":
             start_idx = page_number * 4
             end_idx = start_idx + 4
@@ -473,38 +376,49 @@ class TileManager:
 
         page_tiles = self.tiles[start_idx:end_idx]
 
-        # 2) Create new image
+        # 2) Create image
         img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0,0,0))
         draw = ImageDraw.Draw(img)
 
-        # 2a) Draw the page number at the top 1/4 in big white text
-        top_bar_h = DISPLAY_HEIGHT // 4  # top 1/4
+        # 2a) Draw the page bar at top 1/4
+        top_bar_h = DISPLAY_HEIGHT // 4
         page_text = f"Page {page_number}"
-        # We'll just center it horizontally & vertically in that top region
+
+        # If page bar is selected => invert colors
+        if self.page_selected:
+            bar_bg = (255,255,255)
+            bar_text_color = (0,0,0)
+        else:
+            bar_bg = (0,0,0)
+            bar_text_color = (255,255,255)
+
+        # Fill top bar
+        draw.rectangle((0, 0, DISPLAY_WIDTH, top_bar_h), fill=bar_bg)
+
+        # Center the text in that region
         page_font = ImageFont.truetype(BASE_FONT_PATH, 18)
         ptw, pth = get_text_dimensions(page_text, page_font)
-        px = (DISPLAY_WIDTH - ptw) // 2
-        py = (top_bar_h - pth) // 2
-        draw.text((px, py), page_text, font=page_font, fill=(255,255,255))
+        px = (DISPLAY_WIDTH - ptw)//2
+        py = (top_bar_h - pth)//2
+        draw.text((px, py), page_text, font=page_font, fill=bar_text_color)
 
-        # 3) The bottom 3/4 region is for tiles
-        #    We'll define an offset_y for tiles
+        # 3) The bottom 3/4 region => tiles
         tile_area_y = top_bar_h
         tile_area_h = DISPLAY_HEIGHT - top_bar_h
 
-        # 4) Layout calculations
+        # 4) Layout positions
         if layout == "4":
-            # 2x2 in bottom region
+            # 2x2
             tile_w = DISPLAY_WIDTH // 2
             tile_h = tile_area_h // 2
             coords = [
-                (0,              tile_area_y),
-                (tile_w,         tile_area_y),
-                (0,              tile_area_y + tile_h),
-                (tile_w,         tile_area_y + tile_h),
+                (0,               tile_area_y),
+                (tile_w,          tile_area_y),
+                (0,               tile_area_y + tile_h),
+                (tile_w,          tile_area_y + tile_h),
             ]
         else:
-            # layout="2" => 2 wide x 1 tall in bottom region
+            # layout="2"
             tile_w = DISPLAY_WIDTH // 2
             tile_h = tile_area_h
             coords = [
@@ -518,4 +432,12 @@ class TileManager:
                 x, y = coords[i]
                 tile.draw(draw, x, y, tile_w, tile_h)
 
+        # 6) Show it
         disp.display(img)
+
+    def update(self):
+        """
+        Re-render the same page + layout as last time.
+        Call this repeatedly to achieve blinking.
+        """
+        self.render(self.last_page, self.last_layout)

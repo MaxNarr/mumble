@@ -67,6 +67,14 @@ def menue():
 
     # 3) Render page 0 with layout "4" (4 tiles per page)
     manager.render(page_number=0, layout="4")
+    i = 0
+    while True:
+        manager.update()
+        time.sleep(0.1)
+        i += 1
+        if i > 50:
+            break
+
     time.sleep(3)
 
     # 4) Toggle some states
@@ -81,6 +89,7 @@ def menue():
     # 5) Switch to layout "2" (2 tiles per page) on page 1, for example
     manager.render(page_number=1, layout="2")
     time.sleep(3)
+
 
 
 def run_command(command, timeout=10):

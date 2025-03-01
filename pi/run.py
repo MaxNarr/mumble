@@ -53,12 +53,12 @@ def menue():
 
     # 1) Create some tiles
     tiles = [
-        Tile(name="Channel A", volume=5),
-        Tile(name="Channel B", volume=0, talking=True),
-        Tile(name="Channel C", volume=8, is_called=True),
-        Tile(name="Channel D", volume=2),
-        Tile(name="Channel E", volume=5),
-        Tile(name="Channel F", volume=10),
+        Tile(name="Ch A", volume=5),
+        Tile(name="Ch B", volume=0, talking=True),
+        Tile(name="Ch C", volume=8, is_called=True),
+        Tile(name="Ch D", volume=2),
+        Tile(name="Ch E", volume=5),
+        Tile(name="Ch F", volume=10),
         # ... add as many as you want ...
     ]
 

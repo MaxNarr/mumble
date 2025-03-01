@@ -19,6 +19,7 @@ disp = st7735.ST7735(
     rst="GPIO25",
     rotation=90,
     invert=False,
+    bgr=True,
     spi_speed_hz=4000000
 )
 disp.begin()

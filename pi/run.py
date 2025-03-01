@@ -68,6 +68,7 @@ def menue():
     # 3) Render page 0 with layout "4" (4 tiles per page)
     manager.render(page_number=0, layout="4")
     i = 0
+    manager.page_selected = True
     while True:
         manager.update()
         time.sleep(0.1)

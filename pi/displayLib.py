@@ -4,7 +4,7 @@ import time
 from PIL import Image, ImageDraw, ImageFont
 import st7735
 import math
-
+import mumbleRPC
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐
@@ -236,14 +236,14 @@ class Tile:
     """
     One tile with states:
       - name
-      - volume (0..10; 0 => muted => "muted" red box)
+      - volume (-5..5; -6 => muted => "muted" red box)
       - is_called => blink red
       - selected => white bg, black text
       - talking => green bg
     """
 
     def __init__(self, name: str,
-                 volume: int = 5,
+                 volume: int = 0,
                  is_called: bool = False,
                  selected: bool = False,
                  talking: bool = False,
@@ -256,7 +256,9 @@ class Tile:
         self.id = id
 
     def set_volume(self, new_volume: int):
-        self.volume = max(0, min(10, new_volume))
+        self.volume = max(-6, min(5, new_volume))
+        mumbleRPC.listen(self)
+
 
     def draw(self, draw_obj: ImageDraw.ImageDraw,
              x: int, y: int, w: int, h: int):
@@ -328,7 +330,7 @@ class Tile:
 
 
         # Then volume or muted
-        if self.volume == 0:
+        if self.volume == -6:
             msg = "muted"
             msg_w, msg_h = get_text_dimensions(msg, VOLUME_FONT)
             vol_x = x + (w - msg_w)//2
@@ -340,7 +342,13 @@ class Tile:
                                fill=(255,0,0))
             draw_obj.text((vol_x, vol_y), msg, font=VOLUME_FONT, fill=(255,255,255))
         else:
-            msg = f"Vol.: {self.volume}"
+            if self.volume == 0:
+                            msg = f"Vol.: Std."
+            elif self.volume > 0:
+                msg = f"Vol.: +{self.volume}"
+            elif self.volume <0:    
+                msg = f"Vol.: {self.volume}"
+
             msg_w, msg_h = get_text_dimensions(msg, VOLUME_FONT)
             vol_x = x + (w - msg_w)//2
             vol_y = name_y + th + 5
@@ -368,10 +376,20 @@ class TileManager:
         """
         self.tiles = tiles
         self.page_selected = False  # new state: highlight top bar if True
+        self.tile_selected = 0  # index of selected tile
 
         # Keep track of the last page + layout used, so 'update()' can re-render
         self.last_page = 0
         self.last_layout = "4"
+
+    def getTile(self, index: int = -1,autoselect=False)->Tile:
+        if index == -1: 
+            index=self.tile_selected
+        return self.tiles[index]
+    
+    def nextTile(self, step:int=1, autoselect=False)->Tile:
+        self.tile_selected= (self.tile_selected+step)%len(self.tiles)
+        return self.getTile(autoselect)
 
     def select_page_bar(self, selected: bool):
         """Set whether the page bar is selected (inverted colors)."""

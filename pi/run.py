@@ -4,55 +4,140 @@ import socket
 import xml.etree.ElementTree as ET
 import os
 import threading
+from threading import Thread
 import json
 from displayLib import Tile, TileManager
 import displayLib
+import mumbleRPC
+import jackcontroll
+import UpdaterThread
+from typing import List
+
+from gpiozero import RotaryEncoder
+from gpiozero import Button
+
 
 SOCKET_PATH = f"/run/user/{os.getuid()}/python_rpc_serverSocket"
-basedirMumble = "../build/"
 
 capture_ports = None
 playback_ports = None
 jackstarted = False
 channels = None
-tiles = None 
+tiles: List[displayLib.Tile] = None 
+manager: TileManager = None
+last_press_time1 = 0
+last_press_time2 = 0
+double_press_threshold = 0.7  # Maximum time (seconds) between presses
+doublePressFlag2 = False
+
 def main():
-    jackstarted = start_jackd()
-    menue()
-    processCommands()
+    jackstarted = jackcontroll.start_jackd()
+    setupDisplay()
+    setupControlls()
+    processCommandsAndRPC()
 
-def menue():
- # 1) Use the tile demos
- 
- #   displayLib.display_four_tiles(
- #       tile_colors=[(0,0,0),(0,0,255),(255,255,255),(255,0,0)],
- #       label="Channel"
- #   )
- #   time.sleep(2)
 
- #   displayLib.display_two_tiles(label="Two Tiles Demo")
- #   time.sleep(2)
+def setupControlls():
 
-    # 2) Use the 6-tile menu
-    #displayLib.display_six_tile_menu(selected_tile=2,
-            #labels=["Option A","Option B","Option C",
-             #       "Option D","Option E","Option F"])
-    #time.sleep(2)
+    encoder1 = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  
+    encoder2 = RotaryEncoder(26,20, wrap=False,bounce_time=0.01)  
 
-    # 3) Use the keyboard
-    #    We'll 'scroll' right +1, then select, etc.
-    #displayLib.process_input(+1, False)  # move selection right
-    #time.sleep(1)
+    last_position1 = encoder1.value
+    last_position2 = encoder1.value
 
-    #displayLib.process_input(0, True)    # select current letter
-    #time.sleep(1)
+    button1 = Button(19,pull_up=True, bounce_time=0.02)
+    button2 = Button(21,pull_up=True, bounce_time=0.02)
 
-    # Get typed text
-    #text = displayLib.get_textfield_content()
-    #print("Typed text so far:", text)
+    button1.when_pressed = on_press1  # Trigger on press
+    button1.when_released = on_release1  # Trigger on release
+    button2.when_pressed = on_press2  # Trigger on press
+    button2.when_released = on_release2  # Trigger on release
+
+    # Start a background thread to watch each encoder
+    t1 = Thread(target=monitor_encoder1, args=(encoder1), daemon=True)
+    t2 = Thread(target=monitor_encoder2, args=(encoder2), daemon=True)
+    t1.start()
+    t2.start()
+
+    while True:
+        if encoder1.value != last_position1:
+            print(f"Rotary position1: {encoder1.value}")
+            last_position1 = encoder1.value
+
+        if encoder2.value != last_position2:
+            print(f"Rotary position2: {encoder2.value}")
+            last_position2 = encoder2.value
+
+def monitor_encoder1(encoder):
+    old_value = encoder.value
+    while True:
+        new_value = encoder.value
+        if new_value != old_value:
+            global manager
+            if new_value > old_value:
+                manager.nextTile(1,True)
+            else:
+                manager.nextTile(-1,True)
+            old_value = new_value
+        time.sleep(0.05)  # or 0.005 or whatever
+
+def monitor_encoder2(encoder):
+    old_value = encoder.value
+    while True:
+        new_value = encoder.value
+        if new_value != old_value:
+            global manager
+            if new_value > old_value:
+                manager.getTile().set_volume =manager.getTile().volume +1
+            else:
+                manager.getTile().set_volume =manager.getTile().volume -1
+            old_value = new_value
+        time.sleep(0.05)  # or 0.005 or whatever
+
+#1: 
+# drehen: Selection
+# drücken: Call
+# doppel drücken: Setup ? 
+# Selection geht von alleine wieder weg ?
+
+#2:
+# drehen: Lautstärke
+# drücken: PTT to selection
+# doppel drücken: toggle Talk to selection
+
+def on_press1():
+    print("Button1 pressed!")
+    manager.getTile().is_called=True
+    global last_press_time1
+    current_time = time()
+    diff = current_time - last_press_time1
+    if diff <= double_press_threshold :
+        print("Double press detected!"+ str(current_time - last_press_time1))
+    last_press_time1 = current_time
+
+def on_release1():
+    manager.getTile().is_called=False
+
+def on_press2():
+    print("Button2 pressed!")
+    global last_press_time2, tiles, doublePressFlag2
+    current_time = time()
+    diff = current_time - last_press_time2
+    if diff <= double_press_threshold :
+        doublePressFlag2 = True
+    last_press_time2 = current_time
+    mumbleRPC.talk(manager.getTile(),on=True)
+
+def on_release2():
+    global manager,doublePressFlag2
+    if not doublePressFlag2:
+        mumbleRPC.talk(manager.getTile(),on=False)
+
+
+def setupDisplay():
 
     # 1) Create some tiles
-    global tiles
+    global tiles, manager
     tiles = [
         Tile(name="Ch A", volume=5),
         Tile(name="Ch B", volume=0, talking=True),
@@ -70,14 +155,12 @@ def menue():
     manager.render(page_number=0, layout="4")
     i = 0
     manager.page_selected = True
-    while True:
-        manager.update()
-        time.sleep(0.1)
-        i += 1
-        if i > 50:
-            break
+    frameUpdater = UpdaterThread(manager, times=0, interval=0.1) #10fps
+    frameUpdater.start()
 
     time.sleep(3)
+    frameUpdater.stop()
+
 
     # 4) Toggle some states
     tiles[0].selected = True
@@ -93,19 +176,7 @@ def menue():
     time.sleep(3)
 
 
-
-def run_command(command, timeout=10):
-    """Runs a shell command with a timeout and returns its output as a string."""
-    try:
-        result = subprocess.run(command, shell=True, text=True, capture_output=True, timeout=timeout)
-        return result.stdout.strip()
-    except subprocess.TimeoutExpired:
-        return "Error: Command timed out"
-    except Exception as e:
-        return f"Error: {e}"
-
-
-def processCommands():
+def processCommandsAndRPC():
     """Starts two threads:
        1) One for socket connections
        2) One for user input
@@ -135,7 +206,6 @@ def processCommands():
     #    or you can do user input on the main thread)
     user_thread = threading.Thread(
         target=user_input_loop,
-        args=(basedirMumble,),
         daemon=True
     )
     user_thread.start()
@@ -169,7 +239,7 @@ def socket_listener(server):
             print(f"Error in socket_listener: {e}")
             break
 
-def user_input_loop(basedirMumble):
+def user_input_loop():
     """Loop forever reading user input from stdin."""
     while True:
         user_input = input("> ").strip()
@@ -181,28 +251,21 @@ def user_input_loop(basedirMumble):
         # Dispatch command
         match user_input:
             case "Talk":
-                output = run_command(basedirMumble + "mumble rpc shouttochannel_1")
-                connectSideToneJack()
-
+                output = mumbleRPC.talk()
             case "TalkStop":
-                output = run_command(basedirMumble + "mumble rpc stopshouttochannel_1")
-                disconnectSideToneJack()
-
+                output = mumbleRPC.talk_stop()
             case "Listen":
-                output = run_command(basedirMumble + "mumble rpc listentochannelatvolume_1_10")
+                output = mumbleRPC.listen(1,5)
             case "ListenStop":
-                output = run_command(basedirMumble + "mumble rpc listentochannelatvolume_1_-40")
+                output = mumbleRPC(1,-40)
             case "Start":
-                output = run_command(basedirMumble + "mumble")
+                output = mumbleRPC.start_mumble
             case "getchannelinfo":
-                output = run_command(basedirMumble + "mumble rpc getchannelinfo")
-            case "getUsersInfo":
-                output = run_command(basedirMumble + "mumble rpc getusersinfo")
+                output = mumbleRPC.get_channel_info
             case _:
                 output = "Invalid command"
 
         print(output)
-
 
 def recv_full_message(conn):
     buffer = b""
@@ -214,101 +277,6 @@ def recv_full_message(conn):
         if len(chunk) < 4096:  # If chunk is smaller, likely end of message
             break
     return buffer.decode("utf-8")
-
-
-def start_jackd(interface="hw:2", sample_rate=48000, buffer_size=128, periods=3):
-    """
-    Starts the JACK audio server with ALSA as the backend.
-    
-    :param interface: ALSA device (e.g., "hw:0" or "hw:1").
-    :param sample_rate: Sample rate in Hz.
-    :param buffer_size: Buffer size in frames.
-    :param periods: Number of periods per buffer.
-    """
-    jack_command = f"jackd -d alsa -d {interface} -r {sample_rate} -p {buffer_size} -n {periods}"
-    
-    try:
-        print("Starting JACK server...")
-        jack_process = subprocess.Popen(jack_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        time.sleep(3)  # Give JACK time to initialize
-
-        # Verify JACK is running
-        result = subprocess.run("jack_lsp", shell=True, text=True, capture_output=True)
-        if "system" not in result.stdout:
-            print("Error: JACK did not start properly.")
-            jack_process.terminate()
-            return False
-        
-        print("JACK server started successfully.")
-        return True
-
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
-
-def connect_jack_ports(source, destination, disconnect=False):
-    """
-    Connects two JACK ports using `jack_connect`.
-
-    :param source: The source JACK port (e.g., "system:capture_1").
-    :param destination: The destination JACK port (e.g., "system:playback_1").
-    :param disconnect: if true it disconnects this rout, if false it connects
-
-    """
-
-    condisconType = "connect"
-    if disconnect: condisconType ="disconnect"
-
-    try:
-        result = subprocess.run(f"jack_{condisconType} {source} {destination}", shell=True, capture_output=True, text=True)
-        if result.returncode == 0:
-            print(f"Connected {source} -> {destination}")
-        else:
-            print(f"Failed to connect {source} -> {destination}: {result.stderr.strip()}")
-    except Exception as e:
-        print(f"Error connecting {source} -> {destination}: {e}")
-
-def connectSideToneJack():
-    """
-    Sets up JACK connections between input and output ports.
-    """
-    global capture_ports, playback_ports  # <-- Declare them as global
-
-    try:
-        # List available ports
-        result = subprocess.run("jack_lsp", shell=True, capture_output=True, text=True)
-        ports = result.stdout.strip().split("\n")
-
-        capture_ports = [p for p in ports if "capture" in p]
-        playback_ports = [p for p in ports if "playback" in p]
-
-        if not capture_ports or not playback_ports:
-            print("Error: No valid JACK ports found.")
-            return
-        
-        # Connect first capture to all playback (adjust as needed)
-        for i in range(max(len(capture_ports), len(playback_ports))):
-            connect_jack_ports(capture_ports[0], playback_ports[i])
-
-    except Exception as e:
-        print(f"Error setting up JACK connections: {e}")
-
-def disconnectSideToneJack():
-    """
-    Close up JACK connections between input and output ports.
-    """
-    global capture_ports, playback_ports  # <-- Declare them as global
-    try:
-        if not capture_ports or not playback_ports:
-            print("Error: No valid JACK ports found.")
-            return
-        # Connect first capture to all playback (adjust as needed)
-        for i in range(max(len(capture_ports), len(playback_ports))):
-            connect_jack_ports(capture_ports[0], playback_ports[i],True)
-
-    except Exception as e:
-        print(f"Error setting up JACK connections: {e}")
-
 
 def handle_request(data):
     try:
@@ -348,18 +316,14 @@ def updateTiles(channels):
         tiles.append(tile_obj)
 
 def getChannelsFromJson(json_string):
-
     # Parse the JSON string into a Python list of dictionaries
     channels = json.loads(json_string)
-
     # Loop through each channel in the list
     for channel in channels:
         channel_id = channel["id"]
         channel_name = channel["name"]
         parent_id = channel["parent"]
-        
-        # Do something with each channel
-        print(f"Channel ID: {channel_id}, Name: {channel_name}, Parent: {parent_id}")
+
     return channels
 
 # Example usage

@@ -293,7 +293,7 @@ BLINK_INTERVAL = 0.5  # seconds
 
 # A base font for smaller text (volume, etc.)
 BASE_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 12)  # For volume or "muted"
+VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 8)  # For volume or "muted"
 MIN_NAME_FONT_SIZE = 14
 MAX_NAME_FONT_SIZE = 30  # channel name tries up to size 30
 
@@ -372,7 +372,7 @@ class Tile:
             if self.is_called:
                 # blink red if is_called
                 if current_blink_state():
-                    bg_color = (255,0,0)   # red
+                    bg_color = (0,0,255)   # red
                 else:
                     bg_color = (0,0,0)     # black
                 text_color = (255,255,255)
@@ -423,11 +423,11 @@ class Tile:
             pad = 2
             draw_obj.rectangle((vol_x - pad, vol_y - pad,
                                 vol_x + msg_w + pad, vol_y + msg_h + pad),
-                               fill=(255,0,0))  # red behind "muted"
+                               fill=(0,0,255))  # red behind "muted"
             draw_obj.text((vol_x, vol_y), msg, font=VOLUME_FONT, fill=(255,255,255))
         else:
             # show "Volume: X"
-            msg = f"Volume: {self.volume}"
+            msg = f"Vol.: {self.volume}"
             msg_w, msg_h = get_text_dimensions(msg, VOLUME_FONT)
             vol_x = x + (w - msg_w)//2
             vol_y = name_y + th + 5

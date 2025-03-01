@@ -287,14 +287,15 @@ def get_textfield_content():
     """
     return typed_text
 
+
 # We’ll define a "blink" rate for is_called
 BLINK_INTERVAL = 0.5  # seconds
 
-# A base font for volume/muted
+# A base font for smaller text (volume, etc.)
 BASE_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-BASE_FONT = ImageFont.truetype(BASE_FONT_PATH, 14)  # used for volume text
-MIN_NAME_FONT_SIZE = 10  # minimal fallback for tile name
-MAX_NAME_FONT_SIZE = 30  # maximum trial for tile name
+VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 12)  # For volume or "muted"
+MIN_NAME_FONT_SIZE = 14
+MAX_NAME_FONT_SIZE = 30  # channel name tries up to size 30
 
 def current_blink_state() -> bool:
     """
@@ -302,34 +303,32 @@ def current_blink_state() -> bool:
     or False if we should draw the 'off' state.
     We toggle every BLINK_INTERVAL seconds.
     """
-    t = time.time()
-    cycle = math.floor((t / BLINK_INTERVAL))  # integer stepping
+    now = time.time()
+    cycle = math.floor(now / BLINK_INTERVAL)
+    # Even cycle => 'on', odd cycle => 'off'
     return (cycle % 2) == 0
-
 
 def get_text_dimensions(text, font):
     """
     Returns (width, height) of single-line `text` using getmask().
-    For older PIL versions that don't have font.getsize or draw.textsize.
+    This works even on older Pillow versions lacking font.getsize/draw.textsize.
     """
-    # getmask() returns a bitmap mask of the rendered text
     mask = font.getmask(text)
     return mask.size
 
 
 #
-# ┌──────────────────────────────────────────────────────────┐
-# │  2) TILE CLASS                                          │
-# └──────────────────────────────────────────────────────────┘
-
+#  ┌──────────────────────────────────────────────────────────┐
+#  │  2) TILE CLASS                                          │
+#  └──────────────────────────────────────────────────────────┘
 
 class Tile:
     """
-    Represents one tile with various states:
+    One tile with various states:
       - name (string)
       - volume (0..10; 0 => muted => "muted" red box)
       - is_called (bool => blink entire tile red)
-      - selected (bool => override colors => white bg, black font)
+      - selected (bool => white background, black text)
       - talking (bool => entire tile green)
     """
 
@@ -349,123 +348,120 @@ class Tile:
 
     def draw(self, draw_obj: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int):
         """
-        Draw the tile in the rectangle (x, y, w, h).
-        Behavior:
-          1) If selected => white bg, black font.
-          2) Else if is_called => blink red background.
-          3) Else if talking => green background.
-          4) Else => black background, white font.
+        Draw the tile in rectangle (x,y,w,h).
+        Behavior priorities (highest to lowest):
+          1) selected => white bg, black text
+          2) is_called => blink red
+          3) talking => green
+          4) else => black bg, white text
 
-          - Name at the top, as large as fits horizontally.
-          - Volume or "muted" below the name in a smaller font.
-          - "muted" text has a red rectangle behind it (white text).
+        Name at top (largest possible font up to MAX_NAME_FONT_SIZE).
+        Volume or "muted" in a smaller font (VOLUME_FONT) below the name.
+        "muted" has a red rectangle behind the text.
+
+        We also add a white outline around the tile.
         """
-        # 1) Determine tile background & text color
+        # 1) Determine background + text color
         bg_color = (0,0,0)
         text_color = (255,255,255)
 
         if self.selected:
-            bg_color = (255,255,255)
-            text_color = (0,0,0)
+            bg_color = (255,255,255)   # white
+            text_color = (0,0,0)       # black
         else:
             if self.is_called:
-                # BLINK in red if is_called
+                # blink red if is_called
                 if current_blink_state():
-                    bg_color = (255,0,0)  # red
+                    bg_color = (255,0,0)   # red
                 else:
-                    bg_color = (0,0,0)    # black or "off"
+                    bg_color = (0,0,0)     # black
                 text_color = (255,255,255)
             elif self.talking:
-                bg_color = (0,128,0)  # green
+                bg_color = (0,128,0)      # green
                 text_color = (255,255,255)
             else:
-                bg_color = (0,0,0)
+                bg_color = (0,0,0)        # black
                 text_color = (255,255,255)
 
-        # Fill the tile background
-        draw_obj.rectangle((x, y, x + w, y + h), fill=bg_color)
+        # 2) Fill the tile background and draw a white frame
+        draw_obj.rectangle((x, y, x + w, y + h),
+                           fill=bg_color,
+                           outline=(255,255,255))
 
-        # 2) Draw the tile name, fitted at the top
-        # We'll attempt font sizes from MAX_NAME_FONT_SIZE down to MIN_NAME_FONT_SIZE
-        # until we find one that fits horizontally in 'w'.
+        # 3) Draw the tile name in the top portion
+        #    We'll attempt different font sizes from MAX_NAME_FONT_SIZE down.
         name_font_size = MAX_NAME_FONT_SIZE
+        best_font = None
         while name_font_size >= MIN_NAME_FONT_SIZE:
             trial_font = ImageFont.truetype(BASE_FONT_PATH, name_font_size)
-            text_w, text_h = get_text_dimensions(self.name, trial_font)
-            # If it fits in width, and not too tall for half the tile, accept it
-            # (We assume the name takes up ~ half the tile height at most.)
-            if text_w <= w and text_h <= (h // 2):
-                # Found a fitting font
+            tw, th = get_text_dimensions(self.name, trial_font)
+            if tw <= w and th <= (h // 2):
+                best_font = trial_font
                 break
             name_font_size -= 1
+
+        if best_font is None:
+            # fallback if none found
+            best_font = ImageFont.truetype(BASE_FONT_PATH, MIN_NAME_FONT_SIZE)
+            tw, th = get_text_dimensions(self.name, best_font)
         else:
-            # If we exit the while without break => fallback
-            trial_font = ImageFont.truetype(BASE_FONT_PATH, MIN_NAME_FONT_SIZE)
-            text_w, text_h = get_text_dimensions(self.name, trial_font)
+            tw, th = get_text_dimensions(self.name, best_font)
 
-        # Center horizontally, place near top (some padding)
-        name_x = x + (w - text_w)//2
-        name_y = y + 2  # small top margin
-        draw_obj.text((name_x, name_y), self.name, font=trial_font, fill=text_color)
+        # place near top center
+        name_x = x + (w - tw)//2
+        name_y = y + 2
+        draw_obj.text((name_x, name_y), self.name, font=best_font, fill=text_color)
 
-        # 3) Draw the volume or "muted"
-        # We'll do in base font or smaller near the bottom half
-        vol_font = BASE_FONT
+        # 4) Draw volume or "muted" below the name
         if self.volume == 0:
-            # muted => show a red box with "muted" in white text
+            # Show "muted" with red background
             msg = "muted"
-            msg_w, msg_h = get_text_dimensions(msg, vol_font)
-            # Let's place it below the name
+            msg_w, msg_h = get_text_dimensions(msg, VOLUME_FONT)
             vol_x = x + (w - msg_w)//2
-            vol_y = name_y + text_h + 5  # a little spacing from name
+            vol_y = name_y + th + 5
 
-            # red background for the text region
-            red_pad = 2
-            draw_obj.rectangle(
-                (vol_x - red_pad, vol_y - red_pad,
-                 vol_x + msg_w + red_pad, vol_y + msg_h + red_pad),
-                fill=(255,0,0)
-            )
-            # white text
-            draw_obj.text((vol_x, vol_y), msg, font=vol_font, fill=(255,255,255))
-
+            pad = 2
+            draw_obj.rectangle((vol_x - pad, vol_y - pad,
+                                vol_x + msg_w + pad, vol_y + msg_h + pad),
+                               fill=(255,0,0))  # red behind "muted"
+            draw_obj.text((vol_x, vol_y), msg, font=VOLUME_FONT, fill=(255,255,255))
         else:
             # show "Volume: X"
             msg = f"Volume: {self.volume}"
-            msg_w, msg_h = get_text_dimensions(msg, vol_font)
+            msg_w, msg_h = get_text_dimensions(msg, VOLUME_FONT)
             vol_x = x + (w - msg_w)//2
-            vol_y = name_y + text_h + 5
-            draw_obj.text((vol_x, vol_y), msg, font=vol_font, fill=text_color)
+            vol_y = name_y + th + 5
+            draw_obj.text((vol_x, vol_y), msg, font=VOLUME_FONT, fill=text_color)
 
 
 #
-# ┌──────────────────────────────────────────────────────────┐
-# │  3) TILEMANAGER CLASS                                   │
-# └──────────────────────────────────────────────────────────┘
+#  ┌──────────────────────────────────────────────────────────┐
+#  │  3) TILEMANAGER CLASS                                   │
+#  └──────────────────────────────────────────────────────────┘
 
 class TileManager:
     """
-    Manages a list of Tiles. Supports paging and two layout modes:
-      - layout="4": 4 tiles/page (2 wide x 2 high)
-      - layout="2": 2 tiles/page (2 wide x 1 high)
+    Manages a list of Tile objects, supports paging & 2 layouts:
+      layout="4" => 4 tiles/page (2x2)
+      layout="2" => 2 tiles/page side-by-side
+    The top 1/4 of screen is used for displaying the page number,
+    while the bottom 3/4 is used for tiles.
     """
 
     def __init__(self, tiles):
         """
-        tiles: a list of Tile objects
+        tiles: list of Tile objects
         """
         self.tiles = tiles
 
     def render(self, page_number: int = 0, layout: str = "4"):
         """
-        Draws a page of tiles onto the ST7735 display.
+        Draw a page of tiles onto the ST7735.
 
-        layout="4" => 4 tiles per page in a 2×2 grid
-          indexes: page_number*4 .. page_number*4+3
-        layout="2" => 2 tiles per page, side by side
-          indexes: page_number*2 .. page_number*2+1
+        layout="4" => 4 tiles/page (indexes: page*4..page*4+3)
+        layout="2" => 2 tiles/page (indexes: page*2..page*2+1)
         """
-        # 1) Determine which subset of tiles to draw
+        # 1) Which subset of tiles are on this page?
         if layout == "4":
             start_idx = page_number * 4
             end_idx = start_idx + 4
@@ -475,44 +471,51 @@ class TileManager:
         else:
             raise ValueError("Invalid layout. Use '4' or '2'.")
 
-        # slice the list
         page_tiles = self.tiles[start_idx:end_idx]
-        if not page_tiles:
-            # If page is empty, just draw blank
-            img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0, 0, 0))
-            disp.display(img)
-            return
 
-        # 2) Create a new image
+        # 2) Create new image
         img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0,0,0))
         draw = ImageDraw.Draw(img)
 
-        # 3) Depending on layout, compute tile positions
+        # 2a) Draw the page number at the top 1/4 in big white text
+        top_bar_h = DISPLAY_HEIGHT // 4  # top 1/4
+        page_text = f"Page {page_number}"
+        # We'll just center it horizontally & vertically in that top region
+        page_font = ImageFont.truetype(BASE_FONT_PATH, 18)
+        ptw, pth = get_text_dimensions(page_text, page_font)
+        px = (DISPLAY_WIDTH - ptw) // 2
+        py = (top_bar_h - pth) // 2
+        draw.text((px, py), page_text, font=page_font, fill=(255,255,255))
+
+        # 3) The bottom 3/4 region is for tiles
+        #    We'll define an offset_y for tiles
+        tile_area_y = top_bar_h
+        tile_area_h = DISPLAY_HEIGHT - top_bar_h
+
+        # 4) Layout calculations
         if layout == "4":
-            # 2x2
+            # 2x2 in bottom region
             tile_w = DISPLAY_WIDTH // 2
-            tile_h = DISPLAY_HEIGHT // 2
-            # positions:
+            tile_h = tile_area_h // 2
             coords = [
-                (0,         0),
-                (tile_w,    0),
-                (0,         tile_h),
-                (tile_w,    tile_h),
+                (0,              tile_area_y),
+                (tile_w,         tile_area_y),
+                (0,              tile_area_y + tile_h),
+                (tile_w,         tile_area_y + tile_h),
             ]
         else:
-            # layout == "2": 2 side by side, full height
+            # layout="2" => 2 wide x 1 tall in bottom region
             tile_w = DISPLAY_WIDTH // 2
-            tile_h = DISPLAY_HEIGHT
+            tile_h = tile_area_h
             coords = [
-                (0, 0),
-                (tile_w, 0),
+                (0, tile_area_y),
+                (tile_w, tile_area_y),
             ]
 
-        # 4) Draw each tile in its region
+        # 5) Draw each tile
         for i, tile in enumerate(page_tiles):
             if i < len(coords):
                 x, y = coords[i]
                 tile.draw(draw, x, y, tile_w, tile_h)
 
-        # 5) Send to display
         disp.display(img)

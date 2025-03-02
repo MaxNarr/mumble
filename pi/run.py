@@ -73,10 +73,11 @@ def monitor_encoder2(encoder):
     print("first encoder")
 
     while True:
-        print("encoder follow")
+        print(encoder.value)
 
         new_value = encoder.value
         if new_value != old_value:
+            print("encoder change2")
             global manager
             print("encoder change")
             if new_value > old_value:

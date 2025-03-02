@@ -22,7 +22,6 @@ disp = st7735.ST7735(
     spi_speed_hz=4000000
 )
 disp.begin()
-print("is this printed ?")
 
 DISPLAY_WIDTH = disp.width
 DISPLAY_HEIGHT = disp.height

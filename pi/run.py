@@ -46,6 +46,7 @@ def on_release1():
 
 def on_press2():
     print("Button2 pressed!")
+    return
     global last_press_time2, tiles, doublePressFlag2
     current_time = time.time()
     diff = current_time - last_press_time2
@@ -59,7 +60,7 @@ def on_release2():
     if not doublePressFlag2:
         mumbleRPC.talk(manager.getTile(),on=False)
         print("stop talking")
-        
+
 def main():
     jackstarted = jackcontroll.start_jackd()
     setupDisplay()

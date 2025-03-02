@@ -257,6 +257,7 @@ class Tile:
         import mumbleRPC
         self.volume = max(-6, min(5, new_volume))
         mumbleRPC.listen(self)
+        print("Volume: " + str(self.volume))
 
     def draw(self, draw_obj: ImageDraw.ImageDraw,
              x: int, y: int, w: int, h: int):

@@ -12,6 +12,7 @@ import mumbleRPC
 import jackcontroll
 from updater_thread import UpdaterThread
 from typing import List
+import math
 from gpiozero import RotaryEncoder
 from gpiozero import Button
 
@@ -69,22 +70,16 @@ def monitor_encoder1():
 
 def monitor_encoder2():
     encoder = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  
-
     old_value = encoder.value
-    print("first encoder")
-
     while True:
-        print(encoder.value)
+        #print(encoder.value)
 
         new_value = encoder.value
         if new_value != old_value:
-            print("encoder change2")
             global manager
             print("encoder change")
-            if new_value > old_value:
-                manager.getTile().set_volume =manager.getTile().volume +1
-            else:
-                manager.getTile().set_volume =manager.getTile().volume -1
+            manager.getTile().set_volume = math.floor(encoder.value * 6)
+ 
             old_value = new_value
         time.sleep(0.05)  # or 0.005 or whatever
 

@@ -38,14 +38,14 @@ def main():
 
 def setupControlls():
 
-    encoder1 = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  
-    encoder2 = RotaryEncoder(26,20, wrap=False,bounce_time=0.01)  
+    encoder2 = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  
+    encoder1 = RotaryEncoder(26,20, wrap=False,bounce_time=0.01)  
 
     last_position1 = encoder1.value
-    last_position2 = encoder1.value
+    last_position2 = encoder2.value
 
-    button1 = Button(19,pull_up=True, bounce_time=0.02)
-    button2 = Button(21,pull_up=True, bounce_time=0.02)
+    button2 = Button(19,pull_up=True, bounce_time=0.02)
+    button1 = Button(21,pull_up=True, bounce_time=0.02)
 
     button1.when_pressed = on_press1  # Trigger on press
     button1.when_released = on_release1  # Trigger on release
@@ -108,7 +108,7 @@ def on_press1():
     print("Button1 pressed!")
     manager.getTile().is_called=True
     global last_press_time1
-    current_time = time()
+    current_time = time.time()
     diff = current_time - last_press_time1
     if diff <= double_press_threshold :
         print("Double press detected!"+ str(current_time - last_press_time1))
@@ -120,7 +120,7 @@ def on_release1():
 def on_press2():
     print("Button2 pressed!")
     global last_press_time2, tiles, doublePressFlag2
-    current_time = time()
+    current_time = time.time()
     diff = current_time - last_press_time2
     if diff <= double_press_threshold :
         doublePressFlag2 = True
@@ -139,7 +139,7 @@ def setupDisplay():
     global tiles, manager
     tiles = [
         Tile(name="Ch A", volume=5),
-        Tile(name="Ch B", volume=0, talking=True),
+        Tile(name="Ch B", volume=0),
         Tile(name="Ch C", volume=8, is_called=True),
         Tile(name="Ch D", volume=2),
         Tile(name="Ch E", volume=5),
@@ -153,26 +153,23 @@ def setupDisplay():
     # 3) Render page 0 with layout "4" (4 tiles per page)
     manager.render(page_number=0, layout="4")
     i = 0
-    manager.page_selected = True
+    #manager.page_selected = True
     frameUpdater = UpdaterThread(manager, times=0, interval=0.1) #10fps
     frameUpdater.start()
 
     time.sleep(3)
-    frameUpdater.stop()
 
-
-    # 4) Toggle some states
-    tiles[0].selected = True
     tiles[2].is_called = False
-    tiles[2].talking = True
+    #frameUpdater.stop()
+
 
     # Re-render the same page
     manager.render(page_number=0, layout="4")
-    time.sleep(3)
+    #time.sleep(3)
 
     # 5) Switch to layout "2" (2 tiles per page) on page 1, for example
-    manager.render(page_number=1, layout="2")
-    time.sleep(3)
+    #manager.render(page_number=1, layout="2")
+    #time.sleep(3)
 
 
 def processCommandsAndRPC():

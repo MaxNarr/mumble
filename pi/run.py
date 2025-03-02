@@ -148,7 +148,7 @@ def setupDisplay():
     manager.render(page_number=0, layout="4")
     i = 0
     #manager.page_selected = True
-    frameUpdater = UpdaterThread(manager, times=0, interval=0.1) #10fps
+    frameUpdater = UpdaterThread(manager, times=0, interval=0.2) #10fps
     frameUpdater.start()
 
     time.sleep(3)

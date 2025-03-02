@@ -64,7 +64,7 @@ QString Channel::toJsonString() {
 		QJsonDocument jsonDoc(jsonArray);
 		return QString::fromUtf8(jsonDoc.toJson(QJsonDocument::Indented));
 	#endif // MUMBLE
-	return nullptr;
+	return QString();
 }
 
 Channel::~Channel() {

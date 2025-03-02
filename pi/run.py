@@ -38,7 +38,7 @@ def main():
 
 def setupControlls():
 
-
+    global manager
     button2 = Button(19,pull_up=True, bounce_time=0.02)
     button1 = Button(21,pull_up=True, bounce_time=0.02)
 
@@ -70,6 +70,7 @@ def monitor_encoder1():
 def monitor_encoder2(manager):
     encoder = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  
     old_value = encoder.value
+    print(manager)
     while True:
         #print(encoder.value)
 

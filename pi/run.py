@@ -34,7 +34,8 @@ def main():
     setupDisplay()
     setupControlls()
     processCommandsAndRPC()
-
+    while True:
+        pass
 
 def setupControlls():
 

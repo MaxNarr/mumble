@@ -64,7 +64,7 @@ def on_release2():
 
 def main():
     jackstarted = jackcontroll.start_jackd()
-    setupDisplay()
+    #setupDisplay()
     setupControlls()
     processCommandsAndRPC()
 
@@ -80,10 +80,10 @@ def setupControlls():
     button2.when_released = on_release2  # Trigger on release
     print("button is setup")
     # Start a background thread to watch each encoder
-    t1 = Thread(target=monitor_encoder1, daemon=True)
-    t2 = Thread(target=monitor_encoder2, args=(manager,) ,daemon=True)
-    t1.start()
-    t2.start()
+    #t1 = Thread(target=monitor_encoder1, daemon=True)
+    #t2 = Thread(target=monitor_encoder2, args=(manager,) ,daemon=True)
+    #t1.start()
+    #t2.start()
 
 
 def monitor_encoder1():

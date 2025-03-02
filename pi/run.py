@@ -56,6 +56,7 @@ def on_press2():
     mumbleRPC.talk(manager.getTile(),on=True)
 
 def on_release2():
+    print("Button2 released!")
     global manager,doublePressFlag2
     if not doublePressFlag2:
         mumbleRPC.talk(manager.getTile(),on=False)
@@ -77,7 +78,7 @@ def setupControlls():
     button1.when_released = on_release1  # Trigger on release
     button2.when_pressed = on_press2  # Trigger on press
     button2.when_released = on_release2  # Trigger on release
-
+    print("button is setup")
     # Start a background thread to watch each encoder
     t1 = Thread(target=monitor_encoder1, daemon=True)
     t2 = Thread(target=monitor_encoder2, args=(manager,) ,daemon=True)

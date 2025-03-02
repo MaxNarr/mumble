@@ -50,6 +50,9 @@ def on_press2():
     diff = current_time - last_press_time2
     if diff <= double_press_threshold :
         doublePressFlag2 = True
+    else:        
+        doublePressFlag2 = False
+
     last_press_time2 = current_time
     mumbleRPC.talk(manager.getTile(),on=True)
 
@@ -58,6 +61,7 @@ def on_release2():
     if not doublePressFlag2:
         mumbleRPC.talk(manager.getTile(),on=False)
         print("stop talking")
+
 
 def main():
     jackstarted = jackcontroll.start_jackd()

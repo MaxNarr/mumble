@@ -34,8 +34,6 @@ def main():
     setupDisplay()
     setupControlls()
     processCommandsAndRPC()
-    while True:
-        pass
 
 def setupControlls():
 
@@ -72,7 +70,11 @@ def monitor_encoder1(encoder):
 
 def monitor_encoder2(encoder):
     old_value = encoder.value
+    print("first encoder")
+
     while True:
+        print("encoder follow")
+
         new_value = encoder.value
         if new_value != old_value:
             global manager

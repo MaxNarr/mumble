@@ -37,8 +37,6 @@ def main():
 
 def setupControlls():
 
-    encoder2 = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  
-    encoder1 = RotaryEncoder(26,20, wrap=False,bounce_time=0.01)  
 
     button2 = Button(19,pull_up=True, bounce_time=0.02)
     button1 = Button(21,pull_up=True, bounce_time=0.02)
@@ -49,13 +47,14 @@ def setupControlls():
     button2.when_released = on_release2  # Trigger on release
 
     # Start a background thread to watch each encoder
-    t1 = Thread(target=monitor_encoder1, args=(encoder1,), daemon=True)
-    t2 = Thread(target=monitor_encoder2, args=(encoder2,), daemon=True)
+    t1 = Thread(target=monitor_encoder1, daemon=True)
+    t2 = Thread(target=monitor_encoder2, daemon=True)
     t1.start()
     t2.start()
 
 
-def monitor_encoder1(encoder):
+def monitor_encoder1():
+    encoder = RotaryEncoder(26,20, wrap=False,bounce_time=0.01)  
     old_value = encoder.value
     while True:
         new_value = encoder.value
@@ -68,7 +67,9 @@ def monitor_encoder1(encoder):
             old_value = new_value
         time.sleep(0.05)  # or 0.005 or whatever
 
-def monitor_encoder2(encoder):
+def monitor_encoder2():
+    encoder = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  
+
     old_value = encoder.value
     print("first encoder")
 

@@ -53,8 +53,8 @@ def setupControlls():
     button2.when_released = on_release2  # Trigger on release
 
     # Start a background thread to watch each encoder
-    t1 = Thread(target=monitor_encoder1, args=(encoder1), daemon=True)
-    t2 = Thread(target=monitor_encoder2, args=(encoder2), daemon=True)
+    t1 = Thread(target=monitor_encoder1, args=(encoder1,), daemon=True)
+    t2 = Thread(target=monitor_encoder2, args=(encoder2,), daemon=True)
     t1.start()
     t2.start()
 

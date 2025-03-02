@@ -58,14 +58,6 @@ def setupControlls():
     t1.start()
     t2.start()
 
-    while True:
-        if encoder1.value != last_position1:
-            print(f"Rotary position1: {encoder1.value}")
-            last_position1 = encoder1.value
-
-        if encoder2.value != last_position2:
-            print(f"Rotary position2: {encoder2.value}")
-            last_position2 = encoder2.value
 
 def monitor_encoder1(encoder):
     old_value = encoder.value
@@ -131,6 +123,8 @@ def on_release2():
     global manager,doublePressFlag2
     if not doublePressFlag2:
         mumbleRPC.talk(manager.getTile(),on=False)
+        print("stop talking")
+
 
 
 def setupDisplay():
@@ -149,7 +143,7 @@ def setupDisplay():
 
     # 2) Create a TileManager
     manager = TileManager(tiles)
-
+    print("render first tiles")
     # 3) Render page 0 with layout "4" (4 tiles per page)
     manager.render(page_number=0, layout="4")
     i = 0

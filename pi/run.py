@@ -63,14 +63,27 @@ def on_release2():
         print("stop talking")
 
 def main():
-    #jackstarted = jackcontroll.start_jackd()
-    #setupDisplay()
+    jackstarted = jackcontroll.start_jackd()
+    setupDisplay()
     setupControlls()
-    #processCommandsAndRPC()
+    processCommandsAndRPC()
 
 def setupControlls():
 
     global manager
+    
+    # Start a background thread to watch each encoder
+    
+    buttonThread = Thread(target=wait_for_buttons, daemon=True)
+    encoderThread1 = Thread(target=monitor_encoder1, daemon=True)
+    encoderThread2 = Thread(target=monitor_encoder2, args=(manager,) ,daemon=True)
+    encoderThread1.start()
+    encoderThread2.start()
+    buttonThread.start()
+    while True:
+        time.sleep(0.5)
+
+def wait_for_buttons():
     button2 = Button(19,pull_up=True, bounce_time=0.02)
     button1 = Button(21,pull_up=True, bounce_time=0.02)
 
@@ -79,14 +92,8 @@ def setupControlls():
     button2.when_pressed = on_press2  # Trigger on press
     button2.when_released = on_release2  # Trigger on release
     print("button is setup")
-    # Start a background thread to watch each encoder
-    #t1 = Thread(target=monitor_encoder1, daemon=True)
-    #t2 = Thread(target=monitor_encoder2, args=(manager,) ,daemon=True)
-    #t1.start()
-    #t2.start()
     while True:
-        time.sleep(0.5)
-
+        time.sleep(2)
 
 def monitor_encoder1():
     encoder = RotaryEncoder(26,20, wrap=False,bounce_time=0.01)  

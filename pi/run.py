@@ -70,14 +70,14 @@ def monitor_encoder1():
 def monitor_encoder2(manager):
     encoder = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  
     old_value = encoder.value
-    print(manager)
+    print(manager.getTile())
     while True:
         #print(encoder.value)
 
         new_value = encoder.value
         if new_value != old_value:
             print("encoder change")
-            manager.getTile().set_volume = math.floor(encoder.value * 6)
+            manager.getTile().set_volume(math.floor(encoder.value * 6))
  
             old_value = new_value
         time.sleep(0.05)  # or 0.005 or whatever

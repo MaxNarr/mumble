@@ -30,6 +30,36 @@ last_press_time2 = 0
 double_press_threshold = 0.7  # Maximum time (seconds) between presses
 doublePressFlag2 = False
 
+
+def on_press1():
+    print("Button1 pressed!")
+    manager.getTile().is_called=True
+    global last_press_time1
+    current_time = time.time()
+    diff = current_time - last_press_time1
+    if diff <= double_press_threshold :
+        print("Double press detected!"+ str(current_time - last_press_time1))
+    last_press_time1 = current_time
+
+def on_release1():
+    manager.getTile().is_called=False
+
+def on_press2():
+    print("Button2 pressed!")
+    global last_press_time2, tiles, doublePressFlag2
+    current_time = time.time()
+    diff = current_time - last_press_time2
+    if diff <= double_press_threshold :
+        doublePressFlag2 = True
+    last_press_time2 = current_time
+    mumbleRPC.talk(manager.getTile(),on=True)
+
+def on_release2():
+    global manager,doublePressFlag2
+    if not doublePressFlag2:
+        mumbleRPC.talk(manager.getTile(),on=False)
+        print("stop talking")
+        
 def main():
     jackstarted = jackcontroll.start_jackd()
     setupDisplay()
@@ -93,34 +123,7 @@ def monitor_encoder2(manager):
 # drücken: PTT to selection
 # doppel drücken: toggle Talk to selection
 
-def on_press1():
-    print("Button1 pressed!")
-    manager.getTile().is_called=True
-    global last_press_time1
-    current_time = time.time()
-    diff = current_time - last_press_time1
-    if diff <= double_press_threshold :
-        print("Double press detected!"+ str(current_time - last_press_time1))
-    last_press_time1 = current_time
 
-def on_release1():
-    manager.getTile().is_called=False
-
-def on_press2():
-    print("Button2 pressed!")
-    global last_press_time2, tiles, doublePressFlag2
-    current_time = time.time()
-    diff = current_time - last_press_time2
-    if diff <= double_press_threshold :
-        doublePressFlag2 = True
-    last_press_time2 = current_time
-    mumbleRPC.talk(manager.getTile(),on=True)
-
-def on_release2():
-    global manager,doublePressFlag2
-    if not doublePressFlag2:
-        mumbleRPC.talk(manager.getTile(),on=False)
-        print("stop talking")
 
 
 

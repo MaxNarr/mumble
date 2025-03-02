@@ -63,10 +63,10 @@ def on_release2():
         print("stop talking")
 
 def main():
-    jackstarted = jackcontroll.start_jackd()
+    #jackstarted = jackcontroll.start_jackd()
     #setupDisplay()
     setupControlls()
-    processCommandsAndRPC()
+    #processCommandsAndRPC()
 
 def setupControlls():
 
@@ -84,6 +84,8 @@ def setupControlls():
     #t2 = Thread(target=monitor_encoder2, args=(manager,) ,daemon=True)
     #t1.start()
     #t2.start()
+    while True:
+        time.sleep(0.5)
 
 
 def monitor_encoder1():

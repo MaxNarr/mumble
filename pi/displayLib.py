@@ -22,7 +22,7 @@ disp = st7735.ST7735(
     spi_speed_hz=4000000
 )
 disp.begin()
-
+print("is this printed ?")
 
 DISPLAY_WIDTH = disp.width
 DISPLAY_HEIGHT = disp.height
@@ -258,7 +258,6 @@ class Tile:
         import mumbleRPC
         self.volume = max(-6, min(5, new_volume))
         mumbleRPC.listen(self)
-
 
     def draw(self, draw_obj: ImageDraw.ImageDraw,
              x: int, y: int, w: int, h: int):

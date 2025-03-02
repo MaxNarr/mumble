@@ -49,7 +49,7 @@ def setupControlls():
 
     # Start a background thread to watch each encoder
     t1 = Thread(target=monitor_encoder1, daemon=True)
-    t2 = Thread(target=monitor_encoder2, args=(manager,) daemon=True)
+    t2 = Thread(target=monitor_encoder2, args=(manager,) ,daemon=True)
     t1.start()
     t2.start()
 

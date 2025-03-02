@@ -49,7 +49,7 @@ def setupControlls():
 
     # Start a background thread to watch each encoder
     t1 = Thread(target=monitor_encoder1, daemon=True)
-    t2 = Thread(target=monitor_encoder2, daemon=True)
+    t2 = Thread(target=monitor_encoder2, args=(manager,) daemon=True)
     t1.start()
     t2.start()
 
@@ -60,7 +60,6 @@ def monitor_encoder1():
     while True:
         new_value = encoder.value
         if new_value != old_value:
-            global manager
             if new_value > old_value:
                 manager.nextTile(1,True)
             else:
@@ -68,7 +67,7 @@ def monitor_encoder1():
             old_value = new_value
         time.sleep(0.05)  # or 0.005 or whatever
 
-def monitor_encoder2():
+def monitor_encoder2(manager):
     encoder = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  
     old_value = encoder.value
     while True:
@@ -76,7 +75,6 @@ def monitor_encoder2():
 
         new_value = encoder.value
         if new_value != old_value:
-            global manager
             print("encoder change")
             manager.getTile().set_volume = math.floor(encoder.value * 6)
  

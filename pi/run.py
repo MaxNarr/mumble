@@ -158,7 +158,7 @@ def setupDisplay():
 
 
     # Re-render the same page
-    manager.render(page_number=0, layout="4")
+    #manager.render(page_number=0, layout="4")
     #time.sleep(3)
 
     # 5) Switch to layout "2" (2 tiles per page) on page 1, for example

@@ -41,9 +41,6 @@ def setupControlls():
     encoder2 = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  
     encoder1 = RotaryEncoder(26,20, wrap=False,bounce_time=0.01)  
 
-    last_position1 = encoder1.value
-    last_position2 = encoder2.value
-
     button2 = Button(19,pull_up=True, bounce_time=0.02)
     button1 = Button(21,pull_up=True, bounce_time=0.02)
 
@@ -78,6 +75,7 @@ def monitor_encoder2(encoder):
         new_value = encoder.value
         if new_value != old_value:
             global manager
+            print("encoder change")
             if new_value > old_value:
                 manager.getTile().set_volume =manager.getTile().volume +1
             else:
@@ -143,10 +141,9 @@ def setupDisplay():
 
     # 2) Create a TileManager
     manager = TileManager(tiles)
-    print("render first tiles")
     # 3) Render page 0 with layout "4" (4 tiles per page)
     manager.render(page_number=0, layout="4")
-    i = 0
+   
     #manager.page_selected = True
     frameUpdater = UpdaterThread(manager, times=0, interval=0.1) #10fps
     frameUpdater.start()

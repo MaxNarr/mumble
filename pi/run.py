@@ -45,8 +45,6 @@ def on_release1():
     manager.getTile().is_called=False
 
 def on_press2():
-    print("Button2 pressed!")
-    return
     global last_press_time2, tiles, doublePressFlag2
     current_time = time.time()
     diff = current_time - last_press_time2
@@ -56,7 +54,6 @@ def on_press2():
     mumbleRPC.talk(manager.getTile(),on=True)
 
 def on_release2():
-    print("Button2 released!")
     global manager,doublePressFlag2
     if not doublePressFlag2:
         mumbleRPC.talk(manager.getTile(),on=False)

@@ -53,15 +53,18 @@ QJsonObject Channel::toJson() const {
 }
 
 QString Channel::toJsonString() {
-    QJsonArray jsonArray;
-    for (auto it = Channel::c_qhChannels.begin(); it != Channel::c_qhChannels.end(); ++it) {
-        if (it.value()) { // Null-Check für Sicherheit
-            jsonArray.append(it.value()->toJson());
-        }
-    }
+	#ifdef MUMBLE
+		QJsonArray jsonArray;
+		for (auto it = Channel::c_qhChannels.begin(); it != Channel::c_qhChannels.end(); ++it) {
+			if (it.value()) { // Null-Check für Sicherheit
+				jsonArray.append(it.value()->toJson());
+			}
+		}
 
-    QJsonDocument jsonDoc(jsonArray);
-    return QString::fromUtf8(jsonDoc.toJson(QJsonDocument::Indented));
+		QJsonDocument jsonDoc(jsonArray);
+		return QString::fromUtf8(jsonDoc.toJson(QJsonDocument::Indented));
+	#endif // MUMBLE
+	return nullptr;
 }
 
 Channel::~Channel() {

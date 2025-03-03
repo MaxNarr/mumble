@@ -50,7 +50,7 @@ def on_press2():
     diff = current_time - last_press_time2
     if diff <= double_press_threshold :
         doublePressFlag2 = True
-    else:        
+    elif doublePressFlag2:        
         doublePressFlag2 = False
         return
 

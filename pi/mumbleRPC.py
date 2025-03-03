@@ -26,7 +26,7 @@ def listen(channel: Tile ):
     """
     Example: mumble rpc listentochannelatvolume_{channel_id}_{volume}
     """
-    cmd = f"{BASEDIR_MUMBLE}mumble rpc listentochannelatvolume_{channel.id}_{channel.volume * 10}" #da mumble -30...30
+    cmd = f"{BASEDIR_MUMBLE}mumble rpc listentochannelatvolume_{channel.id}_{channel.volume * 10}" #da mumble -30...30. wir senden aber nur bis 20
     output = run_command(cmd)
     return output
 

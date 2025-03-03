@@ -18,6 +18,8 @@ from gpiozero import Button
 
 
 SOCKET_PATH = f"/run/user/{os.getuid()}/python_rpc_serverSocket"
+MINVOLUME = -2
+MAXVOLUME = 2
 
 capture_ports = None
 playback_ports = None
@@ -118,7 +120,7 @@ def monitor_encoder2(manager):
     old_value = encoder.value
     print(manager.getTile())
     while True:
-        new_value = math.floor(encoder.value * 3)
+        new_value = max(MINVOLUME-1, min(math.floor(encoder.value * 16), MAXVOLUME))  # the smallest step is 0.0625 --> *16 = 1
         if new_value != old_value:
             print("newval: "+str(new_value))
             manager.getTile().set_volume(new_value)

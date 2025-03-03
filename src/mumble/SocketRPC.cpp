@@ -57,7 +57,7 @@ void SocketRPCClient::readyRead() {
 			} break;
 			case QXmlStreamReader::EndDocument: {
 				qxswWriter.writeCurrentToken(qxsrReader);
-				print("Got Request!");
+				printf("Got Request!");
 				processXml();
 
 				qxsrReader.clear();

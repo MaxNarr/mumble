@@ -3131,6 +3131,7 @@ void MainWindow::setVolumeOnChannel(int channelID, int volume) {
 			 Global::get().sh->stopListeningToChannel(c->iId);
 			}
 	}
+}
 
 void MainWindow::on_gsTransmitModePushToTalk_triggered(bool down, QVariant) {
 	if (down) {

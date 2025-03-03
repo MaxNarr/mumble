@@ -121,6 +121,7 @@ def monitor_encoder2(manager):
     print(manager.getTile())
     while True:
         new_value = max(MINVOLUME-1, min(math.floor(encoder.value * 16), MAXVOLUME))  # the smallest step is 0.0625 --> *16 = 1
+        encoder.value =new_value
         if new_value != old_value:
             print("newval: "+str(new_value))
             manager.getTile().set_volume(new_value)

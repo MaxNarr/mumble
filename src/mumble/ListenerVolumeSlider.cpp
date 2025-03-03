@@ -66,16 +66,20 @@ void ListenerVolumeSlider::on_VolumeSlider_changeCompleted() {
 }
 
 void ListenerVolumeSlider::setVolume(int value) {
-    if (!m_volumeSlider) {
+    if (!m_volumeSlider ) {
         return;
     }
-
+	if (m_volumeSlider->getValue() != value){
+		return;
+	}
+	
     // Set the slider's value
     m_volumeSlider->setValue(value);
 
     // Manually trigger the change completion logic
     on_VolumeSlider_changeCompleted();
 }
+
 
 void ListenerVolumeSlider::sendToServer() {
 	ServerHandlerPtr handler = Global::get().sh;

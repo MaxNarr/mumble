@@ -3122,14 +3122,16 @@ void MainWindow::on_gsListenChannel_triggered(bool down, QVariant scdata) {
 void MainWindow::setVolumeOnChannel(int channelID, int volume) {
 	const Channel *c = Channel::get(static_cast<unsigned int>(channelID));
 	if (c) {
-			Global::get().sh->startListeningToChannel(c->iId);
+	if (!Global::get().channelListenerManager->isListening(Global::get().uiSession, c->iId)) {
+				Global::get().sh->startListeningToChannel(c->iId);
+				}
+			m_listenerVolumeSlider->
 			m_listenerVolumeSlider->setListenedChannel(*c);
 			m_listenerVolumeSlider->setVolume(volume);
-			if (volume<=-30){
+			if (volume<=-30 and Global::get().channelListenerManager->isListening(Global::get().uiSession, c->iId)){
 			 Global::get().sh->stopListeningToChannel(c->iId);
 			}
 	}
-}
 
 void MainWindow::on_gsTransmitModePushToTalk_triggered(bool down, QVariant) {
 	if (down) {

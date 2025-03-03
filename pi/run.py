@@ -118,6 +118,7 @@ def monitor_encoder1():
 def monitor_encoder2(manager):
     encoder = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01,max_steps=3)  
     print(manager.getTile())
+    old_value = encoder.value
     while True:
         new_value = max(MINVOLUME-1, min(math.floor(encoder.value*3), MAXVOLUME))  # the smallest step is 0.33 --> *3 = 1
         encoder.value = new_value

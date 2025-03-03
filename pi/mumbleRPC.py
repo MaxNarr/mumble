@@ -11,7 +11,7 @@ def talk(channel: Tile , on=True, toggle=False):
         channel.talking = not channel.talking
     else:
         channel.talking = on
-        
+
     if channel.talking:
         cmd = f"{BASEDIR_MUMBLE}mumble rpc shouttochannel_{channel.id}"
         output = run_command(cmd)
@@ -26,7 +26,7 @@ def listen(channel: Tile ):
     """
     Example: mumble rpc listentochannelatvolume_{channel_id}_{volume}
     """
-    cmd = f"{BASEDIR_MUMBLE}mumble rpc listentochannelatvolume_{channel.id}_{channel.volume * 6}" #da mumble -30...30
+    cmd = f"{BASEDIR_MUMBLE}mumble rpc listentochannelatvolume_{channel.id}_{channel.volume * 10}" #da mumble -30...30
     output = run_command(cmd)
     return output
 

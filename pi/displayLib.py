@@ -25,6 +25,8 @@ disp.begin()
 
 DISPLAY_WIDTH = disp.width
 DISPLAY_HEIGHT = disp.height
+MINVOLUME = -2
+MAXVOLUME = 2
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐
@@ -234,7 +236,7 @@ class Tile:
     """
     One tile with states:
       - name
-      - volume (-5..5; -6 => muted => "muted" red box)
+      - volume (-2..2; -3 => muted => "muted" red box)
       - is_called => blink red
       - selected => white bg, black text
       - talking => green bg
@@ -255,7 +257,7 @@ class Tile:
 
     def set_volume(self, new_volume: int):
         import mumbleRPC
-        self.volume = max(-6, min(5, new_volume))
+        self.volume = max(MINVOLUME-1, min(MAXVOLUME, new_volume))
         mumbleRPC.listen(self)
         print("Volume: " + str(self.volume))
 
@@ -329,7 +331,7 @@ class Tile:
 
 
         # Then volume or muted
-        if self.volume == -6:
+        if self.volume == MINVOLUME-1:
             msg = "muted"
             msg_w, msg_h = get_text_dimensions(msg, VOLUME_FONT)
             vol_x = x + (w - msg_w)//2

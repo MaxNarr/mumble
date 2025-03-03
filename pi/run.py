@@ -123,7 +123,7 @@ def monitor_encoder2(manager):
         new_value = encoder.value
         if new_value != old_value:
             print("encoder change")
-            manager.getTile().set_volume(math.floor(encoder.value * 10))
+            manager.getTile().set_volume(math.floor(encoder.value * 3))
  
             old_value = new_value
         time.sleep(0.05)  # or 0.005 or whatever

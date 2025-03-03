@@ -58,9 +58,12 @@ def on_press2():
 
 def on_release2():
     global manager,doublePressFlag2
+    print("stop talking1")
+
     if not doublePressFlag2:
+        print("stop talking2")
         mumbleRPC.talk(manager.getTile(),on=False)
-        print("stop talking")
+        print("stop talking3")
 
 
 def main():

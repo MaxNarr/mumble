@@ -3121,15 +3121,25 @@ void MainWindow::on_gsListenChannel_triggered(bool down, QVariant scdata) {
 }
 void MainWindow::setVolumeOnChannel(int channelID, int volume) {
 	const Channel *c = Channel::get(static_cast<unsigned int>(channelID));
-	if (c) {
-	if (!Global::get().channelListenerManager->isListening(Global::get().uiSession, c->iId)) {
-				Global::get().sh->startListeningToChannel(c->iId);
-				}
-			m_listenerVolumeSlider->setListenedChannel(*c);
-			m_listenerVolumeSlider->setVolume(volume);
-			if (volume<=-30 and Global::get().channelListenerManager->isListening(Global::get().uiSession, c->iId)){
-			 Global::get().sh->stopListeningToChannel(c->iId);
-			}
+	if (!c) return;
+
+	// Ensure m_listenerVolumeSlider is valid
+	if (!m_listenerVolumeSlider) {
+		qWarning() << "Listener volume slider is not initialized!";
+		return;
+	}
+
+	// If volume is above -30 and the user is not already listening, start listening
+	if (volume > -30 && !Global::get().channelListenerManager->isListening(Global::get().uiSession, c->iId)) {
+		Global::get().sh->startListeningToChannel(c->iId);
+	}
+
+	m_listenerVolumeSlider->setListenedChannel(*c);
+	m_listenerVolumeSlider->setVolume(volume);
+
+	// If volume is below or equal to -30 and user is currently listening, stop listening
+	if (volume <= -30 && Global::get().channelListenerManager->isListening(Global::get().uiSession, c->iId)) {
+		Global::get().sh->stopListeningToChannel(c->iId);
 	}
 }
 

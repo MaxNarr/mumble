@@ -69,7 +69,7 @@ void ListenerVolumeSlider::setVolume(int value) {
     if (!m_volumeSlider ) {
         return;
     }
-	if (m_volumeSlider->value() != value){
+	if (m_volumeSlider->value() == value){
 		return;
 	}
 

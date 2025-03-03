@@ -103,10 +103,10 @@ def wait_for_buttons():
         time.sleep(2)
 
 def monitor_encoder1():
-    encoder = RotaryEncoder(26,20, wrap=True,bounce_time=0.01,max_steps=2)  
-    old_value = encoder.value
+    encoder = RotaryEncoder(26,20, wrap=True,bounce_time=0.01,max_steps=0)  
+    old_value = encoder.steps
     while True:
-        new_value = encoder.value
+        new_value = encoder.steps
         if new_value != old_value:
             if new_value > old_value:
                 manager.nextTile(1,True)

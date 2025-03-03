@@ -118,8 +118,6 @@ def monitor_encoder2(manager):
     old_value = encoder.value
     print(manager.getTile())
     while True:
-        print(encoder.value)
-
         new_value = math.floor(encoder.value * 3)
         if new_value != old_value:
             print("newval: "+str(new_value))

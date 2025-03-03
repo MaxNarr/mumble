@@ -4,7 +4,7 @@
 // Mumble source tree or at <https://www.mumble.info/LICENSE>.
 
 #include "MainWindow.h"
-
+#include <iostream>
 #include "ACL.h"
 #include "ACLEditor.h"
 #include "About.h"
@@ -3057,6 +3057,8 @@ void MainWindow::startTalkingToChannel(int channelId) {
     updateTarget();
     // 4) Pretend we have pressed a push-to-talk key
     Global::get().iPushToTalk++;
+	printf("PTT counter: %d\n", Global::get().iPushToTalk);
+
 }
 
 void MainWindow::stopTalkingToChannel(int channelId) {
@@ -3074,6 +3076,7 @@ void MainWindow::stopTalkingToChannel(int channelId) {
     if (Global::get().iPushToTalk > 0) {
         Global::get().iPushToTalk--;
     }
+	printf("PTT counter2: %d\n", Global::get().iPushToTalk);
     // Remove the channel target
     removeTarget(&st);
     // Let Mumble know we no longer need to whisper/shout there

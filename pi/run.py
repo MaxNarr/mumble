@@ -52,6 +52,7 @@ def on_press2():
         doublePressFlag2 = True
     else:        
         doublePressFlag2 = False
+        return
 
     last_press_time2 = current_time
     mumbleRPC.talk(manager.getTile(),on=True)

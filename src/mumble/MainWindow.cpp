@@ -3125,7 +3125,6 @@ void MainWindow::setVolumeOnChannel(int channelID, int volume) {
 	if (!Global::get().channelListenerManager->isListening(Global::get().uiSession, c->iId)) {
 				Global::get().sh->startListeningToChannel(c->iId);
 				}
-			m_listenerVolumeSlider->
 			m_listenerVolumeSlider->setListenedChannel(*c);
 			m_listenerVolumeSlider->setVolume(volume);
 			if (volume<=-30 and Global::get().channelListenerManager->isListening(Global::get().uiSession, c->iId)){

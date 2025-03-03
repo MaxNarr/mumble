@@ -103,7 +103,7 @@ def wait_for_buttons():
         time.sleep(2)
 
 def monitor_encoder1():
-    encoder = RotaryEncoder(26,20, wrap=False,bounce_time=0.01)  
+    encoder = RotaryEncoder(26,20, wrap=False,bounce_time=0.01,max_steps=3)  
     old_value = encoder.value
     while True:
         new_value = encoder.value
@@ -116,12 +116,11 @@ def monitor_encoder1():
         time.sleep(0.05)  # or 0.005 or whatever
 
 def monitor_encoder2(manager):
-    encoder = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01)  
-    old_value = encoder.value
+    encoder = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01,max_steps=3)  
     print(manager.getTile())
     while True:
-        new_value = max(MINVOLUME-1, min(math.floor(encoder.value * 16), MAXVOLUME))  # the smallest step is 0.0625 --> *16 = 1
-        encoder.value =new_value
+        new_value = max(MINVOLUME-1, min(math.floor(encoder.value*3), MAXVOLUME))  # the smallest step is 0.33 --> *3 = 1
+        encoder.value = new_value
         if new_value != old_value:
             print("newval: "+str(new_value))
             manager.getTile().set_volume(new_value)

@@ -1034,7 +1034,7 @@ void MainWindow::msgTextMessage(const MumbleProto::TextMessage &msg) {
 	}();
 
 	const QString plainMessage = QTextDocumentFragment::fromHtml(u8(msg.message())).toPlainText();
-	if (plainMessage.startswith("call")){
+	if (plainMessage.startsWith("call")){
 		QString basename = "python_rpc_server";  // Name of the socket
 		QString request = "call";        // RPC method name
 	

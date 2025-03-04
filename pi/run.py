@@ -47,7 +47,7 @@ def on_release1():
     manager.getTile().is_calledByUser=None
 
 def on_press2():
-    global last_press_time2, tiles, doublePressFlag2
+    global last_press_time2, doublePressFlag2
     current_time = time.time()
     diff = current_time - last_press_time2
     if diff <= double_press_threshold :
@@ -151,7 +151,7 @@ def monitor_encoder2(manager):
 def setupDisplay():
 
     # 1) Create some tiles
-    global tiles, manager
+    global manager
     tiles = [
         Tile(name="Ch A", volume=5),
         Tile(name="Ch B", volume=0),
@@ -305,7 +305,6 @@ def handle_request(data):
     return b"<reply><succeeded>false</succeeded></reply>"
 
 def updateTiles(channels):
-    global tiles
     tiles = []
     for channel in channels:
         channel_id = channel["id"]
@@ -326,9 +325,8 @@ def updateTiles(channels):
         
 
 def calledFrom(fromuser:str,tochannel:str):
-    global tiles
     print("called")
-    for channelTile in tiles:
+    for channelTile in manager.tiles:
         print("by id: "+ str(channelTile.id)+" toch" + str(tochannel))
 
         if channelTile.id == tochannel:

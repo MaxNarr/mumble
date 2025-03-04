@@ -221,6 +221,7 @@ def socket_listener(server):
             with conn:
                 data = recv_full_message(conn)
                 if data:
+                    print("got msg")
                     response = handle_request(data)
                     conn.sendall(response)
         except OSError:

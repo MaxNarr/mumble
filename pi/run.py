@@ -327,10 +327,7 @@ def updateTiles(channels):
 def calledFrom(fromuser:str,tochannel:str):
     print("called")
     for channelTile in manager.tiles:
-        print("by id: "+ str(channelTile.id)+" toch" + str(tochannel))
-
-        if channelTile.id == tochannel:
-            print("by user: " + str(fromuser))
+        if channelTile.id == int(tochannel):  # Convert str to int            print("by user: " + str(fromuser))
             channelTile.is_calledByUser = fromuser
 
 

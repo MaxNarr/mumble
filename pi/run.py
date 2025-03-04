@@ -329,6 +329,8 @@ def calledFrom(fromuser:str,tochannel:str):
     global tiles
     print("called")
     for channelTile in tiles:
+        print("by id: "+ str(channelTile.id)+" toch" + str(tochannel))
+
         if channelTile.id == tochannel:
             print("by user: " + str(fromuser))
             channelTile.is_calledByUser = fromuser

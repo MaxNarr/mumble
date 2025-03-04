@@ -71,9 +71,14 @@ def on_release2():
 
 def main():
     jackstarted = jackcontroll.start_jackd()
+    print("1")
     setupDisplay()
+    print("2")
     setupControlls()
+    print("3")
     processCommandsAndRPC()
+    print("4")
+
 
 def setupControlls():
 

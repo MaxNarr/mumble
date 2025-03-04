@@ -16,7 +16,6 @@
 #include <QtNetwork/QLocalServer>
 #include <QtXml/QDomDocument>
 
-#include "SocketRPC.h"
 #include <QMap>
 #include <QString>
 #include <QVariant>

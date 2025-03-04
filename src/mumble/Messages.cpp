@@ -37,6 +37,7 @@
 #include "ViewCert.h"
 #include "crypto/CryptState.h"
 #include "Global.h"
+#include "SocketRPC.h"
 
 #include <QTextDocumentFragment>
 

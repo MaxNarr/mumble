@@ -1040,8 +1040,7 @@ void MainWindow::msgTextMessage(const MumbleProto::TextMessage &msg) {
 	
 		QMap<QString, QVariant> params;
 		params.insert("from",QString::fromStdString(pSrc->qsName.toStdString()) );	
-		params.insert("to", QString::fromStdString(msg.channel_id.toStdString())); // Add recipient
-		
+		params.insert("to", QString::fromStdString(std::to_string(msg.channel_id(0))));
 		bool success = SocketRPC::send(basename, request, params);
 
 		if (success) {

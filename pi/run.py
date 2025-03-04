@@ -322,6 +322,8 @@ def updateTiles(channels):
         )
         
         tiles.append(tile_obj)
+        manager.tiles = tiles
+        
 
 def calledFrom(fromuser:str,tochannel:str):
     global tiles

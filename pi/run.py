@@ -92,8 +92,8 @@ def setupControlls():
     encoderThread1.start()
     encoderThread2.start()
     buttonThread.start()
-    while True:
-        time.sleep(0.5)
+    #while True:
+    #    time.sleep(0.5)
 
 def wait_for_buttons():
     button2 = Button(19,pull_up=True, bounce_time=0.02)

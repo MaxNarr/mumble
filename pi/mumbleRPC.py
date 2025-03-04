@@ -48,6 +48,10 @@ def get_channel_info():
     output = run_command(cmd)
     return output
 
+def call(channel: Tile ):
+    cmd = f"{BASEDIR_MUMBLE}mumble rpc calltochannel_{channel.id}"
+    output = run_command(cmd)
+    return output
 
 def run_command(command, timeout=10):
     """Runs a shell command with a timeout and returns its output as a string."""

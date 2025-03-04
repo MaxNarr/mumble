@@ -4,6 +4,7 @@ import time
 from PIL import Image, ImageDraw, ImageFont
 import st7735
 import math
+CALLPHRASE= "calling"
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐
@@ -27,6 +28,16 @@ DISPLAY_WIDTH = disp.width
 DISPLAY_HEIGHT = disp.height
 MINVOLUME = -2
 MAXVOLUME = 2
+# New constant: blink duration (in seconds)
+BLINK_DURATION = 5
+# We’ll define a "blink" rate for is_calledByUser
+BLINK_INTERVAL = 0.5  # seconds
+
+# A base font for smaller text (volume, etc.)
+BASE_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 10)  # For volume or "muted"
+MIN_NAME_FONT_SIZE = 11
+MAX_NAME_FONT_SIZE = 30  # channel name tries up to size 30
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐
@@ -199,14 +210,6 @@ def get_textfield_content():
     return typed_text
 
 
-# We’ll define a "blink" rate for is_called
-BLINK_INTERVAL = 0.5  # seconds
-
-# A base font for smaller text (volume, etc.)
-BASE_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 10)  # For volume or "muted"
-MIN_NAME_FONT_SIZE = 11
-MAX_NAME_FONT_SIZE = 30  # channel name tries up to size 30
 
 def current_blink_state() -> bool:
     """
@@ -232,28 +235,32 @@ def get_text_dimensions(text, font):
 #  │  TILE CLASS                                             │
 #  └──────────────────────────────────────────────────────────┘
 
+
+
 class Tile:
     """
     One tile with states:
       - name
       - volume (-2..2; -3 => muted => "muted" red box)
-      - is_called => blink red
+      - is_calledByUser => blink red for BLINK_DURATION seconds and display caller info,
+          then reset to None to return to default color.
       - selected => white bg, black text
       - talking => green bg
     """
 
     def __init__(self, name: str,
                  volume: int = 0,
-                 is_called: bool = False,
+                 is_calledByUser: str = None,
                  selected: bool = False,
                  talking: bool = False,
                  id: int = 0):
         self.name = name
         self.volume = volume
-        self.is_called = is_called
+        self.is_calledByUser = is_calledByUser
         self.selected = selected
         self.talking = talking
         self.id = id
+        self.blink_start = None  # Initialize blink timer
 
     def set_volume(self, new_volume: int):
         import mumbleRPC
@@ -261,44 +268,56 @@ class Tile:
         mumbleRPC.listen(self)
         print("Volume: " + str(self.volume))
 
+    def call(self):
+        import mumbleRPC
+        mumbleRPC.call(self)
+        self.is_calledByUser = CALLPHRASE
+
     def draw(self, draw_obj: ImageDraw.ImageDraw,
              x: int, y: int, w: int, h: int):
         # Decide background + text colors
-        bg_color = (0,0,0)
-        text_color = (255,255,255)
+        bg_color = (0, 0, 0)
+        text_color = (255, 255, 255)
 
         if self.selected:
             # Highest priority: selected
-            bg_color = (255,255,255)  # white
-            text_color = (0,0,0)      # black
+            bg_color = (255, 255, 255)  # white
+            text_color = (0, 0, 0)        # black
         else:
-            if self.is_called:
-                # blink red if is_called
-                if current_blink_state():
-                    bg_color = (255,0,0)  # red
+            if self.is_calledByUser:
+                # Start the blink timer if not already started
+                if self.blink_start is None:
+                    self.blink_start = time.time()
+                # If within BLINK_DURATION, blink; otherwise, reset is_calledByUser and timer
+                if time.time() - self.blink_start < BLINK_DURATION:
+                    if current_blink_state():
+                        bg_color = (255, 0, 0)  # red blink
+                    else:
+                        bg_color = (0, 0, 0)
                 else:
-                    bg_color = (0,0,0)    # black
-                text_color = (255,255,255)
+                    # Reset the is_calledByUser state and timer after 5 seconds
+                    self.is_calledByUser = None
+                    self.blink_start = None
+                    bg_color = (0, 0, 0)
+                text_color = (255, 255, 255)
             elif self.talking:
-                bg_color = (0,128,0)     # green
-                text_color = (255,255,255)
+                bg_color = (0, 128, 0)  # green
+                text_color = (255, 255, 255)
             else:
-                bg_color = (0,0,0)
-                text_color = (255,255,255)
+                bg_color = (0, 0, 0)
+                text_color = (255, 255, 255)
 
         # Draw the tile background + white border
         draw_obj.rectangle((x, y, x+w, y+h),
                            fill=bg_color,
-                           outline=(255,255,255))
+                           outline=(255, 255, 255))
 
-                # Large name at top
+        # Large name at top
         left_margin = 5
         right_margin = 5
         top_margin = 5
 
-        # The maximum text width we allow (subtract left/right margins)
         max_text_width = w - left_margin - right_margin
-        # The maximum text height is half the tile, minus the top margin
         max_text_height = (h // 2) - top_margin
 
         name_font_size = MAX_NAME_FONT_SIZE
@@ -307,54 +326,52 @@ class Tile:
         while name_font_size >= MIN_NAME_FONT_SIZE:
             trial_font = ImageFont.truetype(BASE_FONT_PATH, name_font_size)
             tw, th = get_text_dimensions(self.name, trial_font)
-
-            # Check if text width/height fit within our margins
             if tw <= max_text_width and th <= max_text_height:
                 best_font = trial_font
                 break
             name_font_size -= 1
 
-        # Fallback if we never found a suitable size
         if best_font is None:
             best_font = ImageFont.truetype(BASE_FONT_PATH, MIN_NAME_FONT_SIZE)
             tw, th = get_text_dimensions(self.name, best_font)
         else:
             tw, th = get_text_dimensions(self.name, best_font)
 
-        # Now place the text:
-        # - x + left_margin is our "left edge"
-        # - we center the text in the available horizontal space: max_text_width
         name_x = x + left_margin + (max_text_width - tw) // 2
         name_y = y + top_margin
-
         draw_obj.text((name_x, name_y), self.name, font=best_font, fill=text_color)
-
 
         # Then volume or muted
         if self.volume == MINVOLUME-1:
             msg = "muted"
             msg_w, msg_h = get_text_dimensions(msg, VOLUME_FONT)
-            vol_x = x + (w - msg_w)//2
+            vol_x = x + (w - msg_w) // 2
             vol_y = name_y + th + 5
             pad = 2
-            # red box behind "muted"
             draw_obj.rectangle((vol_x - pad, vol_y - pad,
                                 vol_x + msg_w + pad, vol_y + msg_h + pad),
-                               fill=(255,0,0))
-            draw_obj.text((vol_x, vol_y), msg, font=VOLUME_FONT, fill=(255,255,255))
+                               fill=(255, 0, 0))
+            draw_obj.text((vol_x, vol_y), msg, font=VOLUME_FONT, fill=(255, 255, 255))
         else:
             if self.volume == 0:
-                            msg = f"Vol.: Std."
+                msg = "Vol.: Std."
             elif self.volume > 0:
                 msg = f"Vol.: +{self.volume}"
-            elif self.volume <0:    
+            else:
                 msg = f"Vol.: {self.volume}"
-
             msg_w, msg_h = get_text_dimensions(msg, VOLUME_FONT)
-            vol_x = x + (w - msg_w)//2
+            vol_x = x + (w - msg_w) // 2
             vol_y = name_y + th + 5
             draw_obj.text((vol_x, vol_y), msg, font=VOLUME_FONT, fill=text_color)
 
+        # If still in the blinking phase, display the caller's name at the bottom
+        if self.is_calledByUser:
+            caller_text = self.is_calledByUser
+            caller_font = ImageFont.truetype(BASE_FONT_PATH, 10)
+            caller_w, caller_h = get_text_dimensions(caller_text, caller_font)
+            caller_x = x + (w - caller_w) // 2
+            caller_y = y + h - caller_h - 5  # 5-pixel margin from bottom
+            draw_obj.text((caller_x, caller_y), caller_text, font=caller_font, fill=text_color)
 
 #
 #  ┌──────────────────────────────────────────────────────────┐

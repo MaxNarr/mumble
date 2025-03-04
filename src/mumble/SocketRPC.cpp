@@ -160,11 +160,23 @@ void SocketRPCClient::processXml() {
 			static const QString stopShoutToChannelPrefix = QLatin1String("stopshouttochannel_");
 			nodeName = request.firstChildElement().nodeName();
 			if (nodeName.startsWith(stopShoutToChannelPrefix)) {
-				QString tail = nodeName.mid(stopShoutToChannelPrefix.size()); // e.g. "3_10"
+				QString tail = nodeName.mid(stopShoutToChannelPrefix.size()); // e.g. "3"
 				bool ok1 = false;
 				int channelID    = tail.toInt(&ok1);
 				if (ok1) {
 					Global::get().mw->stopTalkingToChannel(channelID);
+				} else {
+					std::cout << "Failed to parse channel as int." << std::endl;
+				}
+			}
+			static const QString callToChannelPrefix = QLatin1String("calltochannel_");
+			nodeName = request.firstChildElement().nodeName();
+			if (nodeName.startsWith(callToChannelPrefix)) {
+				QString tail = nodeName.mid(callToChannelPrefix.size()); // e.g. "3"
+				bool ok1 = false;
+				int channelID    = tail.toInt(&ok1);
+				if (ok1) {
+					Global::get().sh->sendChannelTextMessage(static_cast<unsigned int>(channelID), QString("call"), false);//TODO
 				} else {
 					std::cout << "Failed to parse channel as int." << std::endl;
 				}
@@ -347,6 +359,7 @@ SocketRPC::SocketRPC(const QString &basename, QObject *p) : QObject(p) {
 		connect(qlsServer, SIGNAL(newConnection()), this, SLOT(newConnection()));
 	}
 }
+
 
 void SocketRPC::newConnection() {
 	while (true) {

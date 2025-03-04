@@ -1033,6 +1033,24 @@ void MainWindow::msgTextMessage(const MumbleProto::TextMessage &msg) {
 		return tr("%1: %2").arg(prefixTTS).arg(plainMessage);
 	}();
 
+	const QString plainMessage = QTextDocumentFragment::fromHtml(u8(msg.message())).toPlainText();
+	if (plainMessage.startswith("call")){
+		QString basename = "python_rpc_server";  // Name of the socket
+		QString request = "call";        // RPC method name
+	
+		QMap<QString, QVariant> params;
+		params.insert("from",QString::fromStdString(pSrc->qsName.toStdString()) );	
+		params.insert("to", QString::fromStdString(msg.channel_id.toStdString())); // Add recipient
+		
+		bool success = SocketRPC::send(basename, request, params);
+
+		if (success) {
+			std::cout << "Message successfully sent to Python!" << std::endl;
+		} else {
+			std::cerr << "Failed to send message to Python!" << std::endl;
+		}	
+	}
+
 	const QString prefixMessage = target.isEmpty() ? name : tr("(%1) %2").arg(target).arg(name);
 
 	Global::get().l->log(privateMessage ? Log::PrivateTextMessage : Log::TextMessage,

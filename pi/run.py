@@ -20,11 +20,11 @@ from gpiozero import Button
 SOCKET_PATH = f"/run/user/{os.getuid()}/python_rpc_serverSocket"
 MINVOLUME = -2
 MAXVOLUME = 2
+CALLPHRASE= "calling"
 
 capture_ports = None
 playback_ports = None
 jackstarted = False
-channels = None
 tiles: List[displayLib.Tile] = None 
 manager: TileManager = None
 last_press_time1 = 0
@@ -35,7 +35,7 @@ doublePressFlag2 = False
 
 def on_press1():
     print("Button1 pressed!")
-    manager.getTile().is_called=True
+    manager.getTile().is_calledByUser=CALLPHRASE
     global last_press_time1
     current_time = time.time()
     diff = current_time - last_press_time1
@@ -44,7 +44,7 @@ def on_press1():
     last_press_time1 = current_time
 
 def on_release1():
-    manager.getTile().is_called=False
+    manager.getTile().is_calledByUser=None
 
 def on_press2():
     global last_press_time2, tiles, doublePressFlag2
@@ -150,7 +150,7 @@ def setupDisplay():
     tiles = [
         Tile(name="Ch A", volume=5),
         Tile(name="Ch B", volume=0),
-        Tile(name="Ch C", volume=8, is_called=True),
+        Tile(name="Ch C", volume=8, is_calledByUser=CALLPHRASE),
         Tile(name="Ch D", volume=2),
         Tile(name="Ch E", volume=5),
         Tile(name="Ch F", volume=10),
@@ -161,25 +161,11 @@ def setupDisplay():
     manager = TileManager(tiles)
     # 3) Render page 0 with layout "4" (4 tiles per page)
     manager.render(page_number=0, layout="4")
-   
-    #manager.page_selected = True
     frameUpdater = UpdaterThread(manager, times=0, interval=0.1) #10fps
     frameUpdater.start()
-
-    time.sleep(3)
-
-    tiles[2].is_called = False
+    #manager.page_selected = True
     #frameUpdater.stop()
-
-
-    # Re-render the same page
-    #manager.render(page_number=0, layout="4")
-    #time.sleep(3)
-
-    # 5) Switch to layout "2" (2 tiles per page) on page 1, for example
     #manager.render(page_number=1, layout="2")
-    #time.sleep(3)
-
 
 def processCommandsAndRPC():
     """Starts two threads:
@@ -289,7 +275,6 @@ def handle_request(data):
         if root.tag == "send_message":
             message = root.find("message").text
             #print(f"Received message from C++: {message}")
-            global channels 
             channels = getChannelsFromJson(message)
             updateTiles(channels)
             # Create a reply message in XML format
@@ -297,6 +282,18 @@ def handle_request(data):
             success = ET.SubElement(reply, "succeeded")
             success.text = "true"
             return ET.tostring(reply)
+        
+        elif root.tag == "call":
+            fromuser = root.find("from").text
+            tochannel = root.find("to").text
+            #print(f"Received message from C++: {message}")
+            calledFrom(fromuser,tochannel)
+            # Create a reply message in XML format
+            reply = ET.Element("reply")
+            success = ET.SubElement(reply, "succeeded")
+            success.text = "true"
+            return ET.tostring(reply)
+        
     except Exception as e:
         print(f"Error processing request: {e}")
     return b"<reply><succeeded>false</succeeded></reply>"
@@ -312,7 +309,7 @@ def updateTiles(channels):
         tile_obj = Tile(
             name=channel_name,
             volume=0,       # Default volume (change if desired)
-            is_called=False,
+            is_calledByUser=None,
             selected=False,
             talking=False,
             id=channel_id
@@ -320,10 +317,19 @@ def updateTiles(channels):
         
         tiles.append(tile_obj)
 
+def calledFrom(fromuser:str,tochannel:str):
+    global tiles
+    print("called")
+    for channelTile in tiles:
+        if channelTile.id == tochannel:
+            print("by user: " + str(fromuser))
+            channelTile.is_calledByUser = fromuser
+
+
 def getChannelsFromJson(json_string):
     # Parse the JSON string into a Python list of dictionaries
-    channels = json.loads(json_string)
-    # Loop through each channel in the list
+    return json.loads(json_string)
+    # for debug
     for channel in channels:
         channel_id = channel["id"]
         channel_name = channel["name"]

@@ -394,7 +394,7 @@ class TileManager:
         """
         self.tiles = tiles
         self.page_selected = False  # new state: highlight top bar if True
-        self.tile_selected = 0  # index of selected tile
+        self.tile_selected = 1  # index of selected tile
 
         # Keep track of the last page + layout used, so 'update()' can re-render
         self.last_page = 0
@@ -420,18 +420,19 @@ class TileManager:
         """
         self.last_page = page_number
         self.last_layout = layout
-
+        offset = 1 # this means we will skip the channel "root" which is always id 0 
         # 1) Determine which tiles are on this page
         if layout == "4":
-            start_idx = page_number * 4
-            end_idx = start_idx + 4
+            start_idx = page_number * 4 
+            end_idx = start_idx + 4 
         elif layout == "2":
             start_idx = page_number * 2
             end_idx = start_idx + 2
         else:
             raise ValueError("Invalid layout. Use '4' or '2'.")
 
-        page_tiles = self.tiles[start_idx:end_idx]
+        
+        page_tiles = self.tiles[start_idx+offset:end_idx+offset]
 
         # 2) Create image
         img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0,0,0))

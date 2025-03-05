@@ -431,7 +431,7 @@ class TileManager:
         else:
             raise ValueError("Invalid layout. Use '4' or '2'.")
 
-        
+        self.tiles.sort(key=lambda tile: tile.id)
         page_tiles = self.tiles[start_idx+offset:end_idx+offset]
 
         # 2) Create image

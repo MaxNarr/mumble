@@ -2,7 +2,8 @@
 
 import time
 from PIL import Image, ImageDraw, ImageFont
-import st7789 #st7735
+from DisplayST7789 import ST7789 #st7735
+import spidev as SPI
 import math
 CALLPHRASE= "calling"
 
@@ -23,23 +24,17 @@ CALLPHRASE= "calling"
 #     spi_speed_hz=4000000
 # )
 
-disp = st7789.ST7789(
-    port=0,          # SPI port (often 0 on Raspberry Pi)
-    cs=0,            # Chip-select (use 0 or 1 based on your wiring)
-    dc=25,           # Data/Command pin
-    backlight=24,    # Backlight pin
-    rst=27,          # Reset pin
-    rotation=90,     # Adjust as needed (0, 90, 180, 270)
-    invert=False,    # Whether the colors should be inverted
-    width=240,       # ST7789 is typically 240 wide
-    height=240,      # ST7789 is typically 240 high
-    spi_speed_hz=40000000  # Often you can go faster with ST7789
-)
-
-disp.begin()
-
+# 1) Create and Init the Display
+disp = ST7789.ST7789()    # Pass any constructor args you need (width, height, etc.)
+disp.Init()
+disp.clear()
+# 2) Optionally Set Backlight Brightness to 50%
+disp.bl_DutyCycle(50)
+# 3) Query Display Width & Height
 DISPLAY_WIDTH = disp.width
 DISPLAY_HEIGHT = disp.height
+
+
 MINVOLUME = -2
 MAXVOLUME = 2
 # New constant: blink duration (in seconds)
@@ -126,7 +121,7 @@ def display_six_tile_menu(selected_tile=0, labels=None):
         )
         draw_centered_text(draw, tx, ty, tile_w, tile_h, labels[i], FONT, text_color)
 
-    disp.display(img)
+    disp.ShowImage(img)
 
 
 #
@@ -196,7 +191,7 @@ def display_keyboard_screen(selected_key, typed_text):
 
             cur_index += 1
 
-    disp.display(img)
+    disp.ShowImage(img)
 
 def process_input(delta, select):
     """
@@ -505,7 +500,7 @@ class TileManager:
                 tile.draw(draw, x, y, tile_w, tile_h)
 
         # 6) Show it
-        disp.display(img)
+        disp.ShowImage(img)
 
     def update(self):
         """

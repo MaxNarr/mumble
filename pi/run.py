@@ -95,49 +95,49 @@ def on_release2():
 
 # Event functions for new buttons
 def on_press_up():
-	ui_manager.on_joystick_up()
+	manager.on_joystick_up()
 
 def on_release_up():
 	pass
 
 def on_press_down():
-	ui_manager.on_joystick_down()
+	manager.on_joystick_down()
 
 def on_release_down():
 	pass
 
 def on_press_right():
-	ui_manager.on_joystick_right()
+	manager.on_joystick_right()
 
 def on_release_right():
 	pass
 
 def on_press_left():
-	ui_manager.on_joystick_left()
+	manager.on_joystick_left()
 
 def on_release_left():
 	pass
 
 def on_press_middle():
-	ui_manager.on_joystick_middle()
+	manager.on_joystick_middle()
 
 def on_release_middle():
 	pass
 
 def on_press_disp1():
-	ui_manager.on_push_button_1()
+	manager.on_push_button_1()
 
 def on_release_disp1():
 	pass
 
 def on_press_disp2():
-	ui_manager.on_push_button_2()
+	manager.on_push_button_2()
 
 def on_release_disp2():
     pass
 
 def on_press_disp3():
-	ui_manager.on_push_button_3()
+	manager.on_push_button_3()
 
 def on_release_disp3():
     pass

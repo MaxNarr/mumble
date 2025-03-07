@@ -268,7 +268,7 @@ def setupDisplay():
     # 2) Create a TileManager
     manager = UIManager(tiles)
     # 3) Render page 0 with layout "4" (4 tiles per page)
-    manager.render(page_number=0, layout="4")
+    manager.render()
     frameUpdater = UpdaterThread(manager, times=0, interval=0.1) #10fps
     frameUpdater.start()
     #manager.page_selected = True

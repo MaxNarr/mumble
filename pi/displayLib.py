@@ -2,7 +2,7 @@
 
 import time
 from PIL import Image, ImageDraw, ImageFont
-import st7735
+import st7789 #st7735
 import math
 CALLPHRASE= "calling"
 
@@ -11,17 +11,31 @@ CALLPHRASE= "calling"
 #  │            DISPLAY INITIALIZATION (GLOBAL)                    │
 #  └────────────────────────────────────────────────────────────────┘
 
-disp = st7735.ST7735(
-    port=0,
-    cs=st7735.BG_SPI_CS_BACK,
-    dc="GPIO24",
-    backlight="GPIO22",
-    rst="GPIO25",
-    rotation=90,
-    invert=False,
-    bgr=False,
-    spi_speed_hz=4000000
+# disp = st7735.ST7735(
+#     port=0,
+#     cs=st7735.BG_SPI_CS_BACK,
+#     dc="GPIO24",
+#     backlight="GPIO22",
+#     rst="GPIO25",
+#     rotation=90,
+#     invert=False,
+#     bgr=False,
+#     spi_speed_hz=4000000
+# )
+
+disp = st7789.ST7789(
+    port=0,          # SPI port (often 0 on Raspberry Pi)
+    cs=0,            # Chip-select (use 0 or 1 based on your wiring)
+    dc=25,           # Data/Command pin
+    backlight=24,    # Backlight pin
+    rst=27,          # Reset pin
+    rotation=90,     # Adjust as needed (0, 90, 180, 270)
+    invert=False,    # Whether the colors should be inverted
+    width=240,       # ST7789 is typically 240 wide
+    height=240,      # ST7789 is typically 240 high
+    spi_speed_hz=40000000  # Often you can go faster with ST7789
 )
+
 disp.begin()
 
 DISPLAY_WIDTH = disp.width

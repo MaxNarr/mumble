@@ -6,7 +6,7 @@ from DisplayST7789 import config
 class ST7789(config.RaspberryPi):
 
     width = 240
-    height = 239
+    height = 240
     def command(self, cmd):
         self.digital_write(self.GPIO_DC_PIN, False)
         self.spi_writebyte([cmd])      

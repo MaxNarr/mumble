@@ -6,7 +6,7 @@ import spidev as SPI
 from PIL import Image, ImageDraw, ImageFont
 from enum import Enum
 
-# Replace with your local ST7789 driver import
+# Replace this with your local ST7789 driver import
 from DisplayST7789 import ST7789
 
 CALLPHRASE = "calling"
@@ -40,6 +40,9 @@ FONT = ImageFont.truetype(BASE_FONT_PATH, 14)
 VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 10)
 MIN_NAME_FONT_SIZE = 11
 MAX_NAME_FONT_SIZE = 30
+
+# Inactivity threshold (seconds) to hide the white tile-selection cursor
+CURSOR_TIMEOUT = 3.0
 
 #
 #  ┌───────────────────────────────────────────────────────────┐
@@ -76,8 +79,8 @@ class Tile:
       - name
       - volume (-2..2; -3 => "muted")
       - is_calledByUser => triggers blinking
-      - selected => highlight tile
-      - talking => show green
+      - selected => highlight tile in white
+      - talking => show green bg
       - id => identifier
     """
     def __init__(self, name: str,
@@ -106,15 +109,19 @@ class Tile:
         self.is_calledByUser = CALLPHRASE
 
     def draw(self, draw_obj: ImageDraw.ImageDraw,
-             x: int, y: int, w: int, h: int):
+             x: int, y: int, w: int, h: int,
+             tile_cursor_active: bool):
         """
-        Draws the tile rectangle plus text. If 'selected', tile is white.
-        If 'talking', tile is green. If 'is_calledByUser', it blinks red.
+        Draws the tile rectangle plus text.
+        - tile_cursor_active: If False, we ignore 'selected' and draw normally.
         """
         bg_color = (0, 0, 0)
         text_color = (255, 255, 255)
 
-        if self.selected:
+        # If the tile-selection cursor is inactive, we do not show the white highlight:
+        is_selected = self.selected and tile_cursor_active
+
+        if is_selected:
             bg_color = (255, 255, 255)
             text_color = (0, 0, 0)
         else:
@@ -208,10 +215,11 @@ class EmptyTile(Tile):
         super().__init__(name="+", id=-1)
 
     def draw(self, draw_obj: ImageDraw.ImageDraw,
-             x: int, y: int, w: int, h: int):
-        # We'll just draw a plus sign in the center
-        bg_color = (255, 255, 255) if self.selected else (0, 0, 0)
-        text_color = (0, 0, 0) if self.selected else (255, 255, 255)
+             x: int, y: int, w: int, h: int,
+             tile_cursor_active: bool):
+        # We'll just draw a plus sign in the center, ignoring volume etc.
+        bg_color = (255, 255, 255) if (self.selected and tile_cursor_active) else (0, 0, 0)
+        text_color = (0, 0, 0) if (self.selected and tile_cursor_active) else (255, 255, 255)
         draw_obj.rectangle((x, y, x+w, y+h), fill=bg_color, outline=(255, 255, 255))
         draw_centered_text(draw_obj, x, y, w, h, "+", FONT, text_color)
 
@@ -226,29 +234,25 @@ class ScrollableListView:
     A generic vertical-list view that displays items as text rows.
     'items' is a list of strings. 'selected_index' is the current row selection.
     The user can scroll up/down. The user can select an item with 'middle button'.
-    The maximum items displayed per "screen" is determined by the row height.
     """
     def __init__(self, items, title=""):
         self.items = items
         self.selected_index = 0
         self.title = title
         # We'll compute how many items can fit on-screen
-        self.item_height = 25  # for example
-        self.scroll_offset = 0  # index of the topmost item displayed
+        self.item_height = 25
+        self.scroll_offset = 0
 
     def move_up(self):
         if self.selected_index > 0:
             self.selected_index -= 1
-        # Adjust scroll offset
         if self.selected_index < self.scroll_offset:
             self.scroll_offset = self.selected_index
 
     def move_down(self):
         if self.selected_index < len(self.items) - 1:
             self.selected_index += 1
-        # If the selection goes beyond the bottom displayed item,
-        # shift the window
-        max_items_on_screen = (DISPLAY_HEIGHT // self.item_height) - 1  # minus 1 if we want a title
+        max_items_on_screen = (DISPLAY_HEIGHT // self.item_height) - 1
         if self.selected_index > self.scroll_offset + max_items_on_screen:
             self.scroll_offset = self.selected_index - max_items_on_screen
 
@@ -263,7 +267,6 @@ class ScrollableListView:
 
         # Start drawing items below title
         y_start = title_height
-        # how many items fit
         max_visible = (DISPLAY_HEIGHT - title_height) // self.item_height
 
         visible_items = self.items[self.scroll_offset:self.scroll_offset + max_visible]
@@ -271,7 +274,6 @@ class ScrollableListView:
         for idx, item_text in enumerate(visible_items):
             actual_index = self.scroll_offset + idx
             y = y_start + idx * self.item_height
-            # highlight if selected
             if actual_index == self.selected_index:
                 bg = (255, 255, 255)
                 fg = (0, 0, 0)
@@ -291,7 +293,7 @@ class ScrollableListView:
 
 #
 #  ┌───────────────────────────────────────────────────────────┐
-#  │                UI STATE MACHINE SETUP                    │
+#  │                  UI STATES / MANAGER                    │
 #  └───────────────────────────────────────────────────────────┘
 
 class UIState(Enum):
@@ -300,173 +302,179 @@ class UIState(Enum):
     GENERAL_SETTINGS = 3
     EDIT_DISPLAY_NAME = 4
     EDIT_IP = 5
-    # etc...
+    LAYOUT_SETTINGS = 6
+
+
+class LayoutOption(Enum):
+    TWO_BY_THREE = (2, 3)  # 2 columns, 3 rows => 6 tiles per page
+    TWO_BY_TWO   = (2, 2)  # 2 columns, 2 rows => 4 tiles per page
+    TWO_BY_ONE   = (2, 1)  # 2 columns, 1 row  => 2 tiles per page
 
 
 class UIManager:
     """
-    Handles what screen we are on, manages pages of tiles,
-    handles the tile settings list, general settings, etc.
+    - Manages an infinite set of pages, each page has N = cols*rows slots.
+    - White cursor for single-tile selection (inactive after 3s).
+    - Additional "talk group" selection: row-based highlight in green.
+    - Provides menu views for tile assignment, general settings, layout settings, etc.
     """
 
     def __init__(self, all_tiles):
-        # A pool of all possible tiles (besides "EmptyTile")
+        # A pool of all possible tiles
         self.all_tiles = all_tiles
 
-        # We'll store pages as a list of lists.
-        # Each page has 6 slots (2x3). Each slot is either a Tile or an EmptyTile.
+        # Default layout: 2x3
+        self.layout = LayoutOption.TWO_BY_THREE
+
+        # Create the first page
         self.pages = []
-        # Create the first page with all empty
-        self.pages.append([EmptyTile() for _ in range(6)])
+        self.pages.append([EmptyTile() for _ in range(self.num_slots_per_page())])
         self.selected_page_index = 0
-        self.selected_tile_index = 0  # which of the 6 slots on the current page is selected
+        self.selected_tile_index = 0  # which slot on the page is selected
+
+        # White tile-cursor
+        self.tile_cursor_active = True
+        self.last_input_time = time.time()
+
+        # For talk groups, we store the "talk group row" selection
+        self.selected_talk_group_row = 0
 
         # Current UI state
         self.state = UIState.PAGE_VIEW
 
-        # For the scrollable list (TileSettings, GeneralSettings)
+        # For the scrollable list (TileSettings, GeneralSettings, LayoutSettings)
         self.tile_settings_view = None
         self.general_settings_view = None
+        self.layout_settings_view = None
 
-        # Some dummy data for general settings
         self.display_name = "My Pi"
         self.ip_address = "192.168.0.100"
         self.use_dhcp = True
 
+        # init some menu data
         self.init_general_settings_view()
+        self.init_layout_settings_view()
+
+    def num_cols(self):
+        return self.layout.value[0]  # e.g. 2
+
+    def num_rows(self):
+        return self.layout.value[1]  # e.g. 3
+
+    def num_slots_per_page(self):
+        return self.num_cols() * self.num_rows()
+
+    def page_count(self):
+        return len(self.pages)
 
     def init_general_settings_view(self):
-        # A list of items for general settings
-        # We'll store them as strings for simplicity
-        items = ["Display Name", "IP Settings"]
-        # We could add more items here, e.g. "Audio Settings", etc.
+        items = ["Display Name", "IP Settings", "Layout"]
         self.general_settings_view = ScrollableListView(items, title="General Settings")
 
+    def init_layout_settings_view(self):
+        # We'll list each layout as a name
+        items = ["2x3", "2x2", "2x1", "Back"]
+        self.layout_settings_view = ScrollableListView(items, title="Choose Layout")
+
     #
-    # ───────────────────────────────── PAGE VIEW ─────────────────────────────────
+    # ─────────────────────────── ACTIVITY TRACKING ─────────────────────────────
+    #
+    def record_user_input(self):
+        """Call this whenever the user moves joystick or presses a button that affects tile selection."""
+        self.last_input_time = time.time()
+        # The first time user interacts again, re-activate the tile cursor in the top-left corner
+        if not self.tile_cursor_active:
+            self.tile_cursor_active = True
+            self.selected_tile_index = 0  # jump to top-left tile on the same page
+
+    def check_cursor_timeout(self):
+        """Call periodically to see if the tile selection should be hidden."""
+        if self.tile_cursor_active:
+            if (time.time() - self.last_input_time) > CURSOR_TIMEOUT:
+                self.tile_cursor_active = False
+
+    #
+    # ─────────────────────────── TALK GROUP LOGIC ─────────────────────────────
+    #
+    def get_current_talk_group_tiles(self):
+        """
+        Return a list of the 2 tiles in the selected talk group row.
+        For a layout with 2 columns, that row is [ (row*2), (row*2 + 1) ].
+        """
+        row = self.selected_talk_group_row
+        start_idx = row * self.num_cols()
+        page = self.pages[self.selected_page_index]
+        # If the row is out of range, we might need to expand pages or clamp
+        if start_idx >= len(page):
+            return []
+        end_idx = start_idx + self.num_cols()
+        return page[start_idx:end_idx]
+
+    def talk_group_count_per_page(self):
+        """Equals the number of rows in the current layout."""
+        return self.num_rows()
+
+    #
+    # ─────────────────────────── PAGE VIEW RENDER ─────────────────────────────
     #
 
     def render_page_view(self):
         """
-        Draw the current page of 2x3 tiles, with the selected tile highlighted.
-        If we have multiple pages, show some indicator at the top bar maybe.
+        Draw the grid of tiles with optional tile-selection (white) and
+        the talk-group selection for the row (green border).
         """
         img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0,0,0))
         draw = ImageDraw.Draw(img)
 
-        # Optionally draw a top bar with the page number
+        # top bar
         top_bar_h = 24
         draw.rectangle((0, 0, DISPLAY_WIDTH, top_bar_h), fill=(255,255,255))
         page_text = f"Page {self.selected_page_index+1}"
         draw_centered_text(draw, 0, 0, DISPLAY_WIDTH, top_bar_h, page_text, FONT, (0,0,0))
 
-        # 2x3 layout
         tile_area_y = top_bar_h
         tile_area_h = DISPLAY_HEIGHT - top_bar_h
-        tile_w = DISPLAY_WIDTH // 2
-        tile_h = tile_area_h // 3
 
-        coords = []
-        for row in range(3):
-            for col in range(2):
-                x = col * tile_w
-                y = tile_area_y + row * tile_h
-                coords.append((x, y))
+        # each row is tile_h high
+        tile_h = tile_area_h // self.num_rows()
+        tile_w = DISPLAY_WIDTH // self.num_cols()
 
-        # Mark the selected slot
         page = self.pages[self.selected_page_index]
+        for idx, tile in enumerate(page):
+            # compute row, col
+            row = idx // self.num_cols()
+            col = idx % self.num_cols()
+            x = col * tile_w
+            y = tile_area_y + row * tile_h
 
-        # Draw each tile
-        for i in range(6):
-            tile = page[i]
-            if i == self.selected_tile_index:
-                tile.selected = True
-            else:
-                tile.selected = False
+            # Check if tile is currently selected
+            tile.selected = (idx == self.selected_tile_index)
 
-            x, y = coords[i]
-            tile.draw(draw, x, y, tile_w, tile_h)
+            # Draw tile
+            tile.draw(draw, x, y, tile_w, tile_h, tile_cursor_active=self.tile_cursor_active)
+
+        # Draw the talk group highlight for the entire row in green
+        # We'll do a single green rectangle around the row
+        tg_row = self.selected_talk_group_row
+        tg_y = tile_area_y + tg_row * tile_h
+        # talk group always 2 columns wide => entire row
+        draw.rectangle((0, tg_y, DISPLAY_WIDTH, tg_y + tile_h),
+                       outline=(0,255,0), width=2)
 
         disp.ShowImage(img)
 
     #
-    # ───────────────────────────── TILE SETTINGS ─────────────────────────────
+    # ───────────────────────────── RENDER STATES ─────────────────────────────
     #
-
-    def enter_tile_settings_view(self):
-        """
-        Build a list of items: "Empty", all tile names, and "Back".
-        Use the ScrollableListView to let the user pick one.
-        """
-        # We'll build the list in this order: "Empty", <all tile names>, "Back"
-        item_names = ["Empty"]
-        for t in self.all_tiles:
-            item_names.append(t.name)
-        item_names.append("Back")
-        self.tile_settings_view = ScrollableListView(item_names, title="Select Tile")
-        self.state = UIState.TILE_SETTINGS
 
     def render_tile_settings_view(self):
         self.tile_settings_view.render()
 
-    def select_in_tile_settings_view(self):
-        """User pressed 'middle' on a tile in the settings list."""
-        chosen = self.tile_settings_view.get_selected_item()
-        if chosen is None:
-            return
-
-        # If "Back", or if we are at the last item
-        if chosen == "Back" or (self.tile_settings_view.selected_index == len(self.tile_settings_view.items) - 1):
-            # Just go back
-            self.state = UIState.PAGE_VIEW
-            return
-
-        # If "Empty"
-        if chosen == "Empty":
-            self.set_current_page_tile(EmptyTile())
-            self.state = UIState.PAGE_VIEW
-            return
-
-        # Otherwise, find the tile in self.all_tiles
-        for tile_obj in self.all_tiles:
-            if tile_obj.name == chosen:
-                # Assign that tile to the selected slot
-                # (We might want to create a new instance if the tile is mutable.)
-                # For simplicity, we just set the reference.
-                # If you need a new instance, you'd do something like: Tile(tile_obj.name, etc.)
-                self.set_current_page_tile(tile_obj)
-                break
-
-        self.state = UIState.PAGE_VIEW
-
-    def set_current_page_tile(self, tile):
-        self.pages[self.selected_page_index][self.selected_tile_index] = tile
-
-    #
-    # ───────────────────────────── GENERAL SETTINGS ─────────────────────────────
-    #
-
-    def open_general_settings(self):
-        """Called when in PAGE_VIEW and user presses 'pushbutton1' (the back button)."""
-        self.state = UIState.GENERAL_SETTINGS
-
     def render_general_settings_view(self):
         self.general_settings_view.render()
 
-    def select_in_general_settings_view(self):
-        chosen = self.general_settings_view.get_selected_item()
-        if chosen == "Display Name":
-            self.state = UIState.EDIT_DISPLAY_NAME
-            return
-        elif chosen == "IP Settings":
-            self.state = UIState.EDIT_IP
-            return
-        # Potentially more items here
-
-    #
-    # ───────────────────────────── EDIT DISPLAY NAME ─────────────────────────────
-    #
-    # This would be where you show the keyboard. For simplicity, we just show a placeholder.
+    def render_layout_settings_view(self):
+        self.layout_settings_view.render()
 
     def render_edit_display_name(self):
         img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0,0,0))
@@ -474,10 +482,6 @@ class UIManager:
         msg = f"Editing display name:\n{self.display_name}\n(TODO: Implement keyboard screen)"
         draw.text((5, 5), msg, font=FONT, fill=(255,255,255))
         disp.ShowImage(img)
-
-    #
-    # ───────────────────────────── EDIT IP SETTINGS ─────────────────────────────
-    #
 
     def render_edit_ip(self):
         img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0,0,0))
@@ -489,11 +493,10 @@ class UIManager:
         draw.text((5,5), msg, font=FONT, fill=(255,255,255))
         disp.ShowImage(img)
 
-    #
-    # ─────────────────────────────────── RENDER ──────────────────────────────────
-    #
-
     def render(self):
+        # Possibly hide the tile cursor if inactive
+        self.check_cursor_timeout()
+
         if self.state == UIState.PAGE_VIEW:
             self.render_page_view()
         elif self.state == UIState.TILE_SETTINGS:
@@ -504,128 +507,220 @@ class UIManager:
             self.render_edit_display_name()
         elif self.state == UIState.EDIT_IP:
             self.render_edit_ip()
-        # Extend for more states as needed
+        elif self.state == UIState.LAYOUT_SETTINGS:
+            self.render_layout_settings_view()
 
     #
-    # ──────────────────────────── EVENT HANDLERS ───────────────────────────────
+    # ─────────────────────────── TILE SETTINGS  ─────────────────────────────
+    #
+
+    def enter_tile_settings_view(self):
+        """
+        Build a list: ["Empty", all tile names, "Back"]
+        """
+        item_names = ["Empty"]
+        for t in self.all_tiles:
+            item_names.append(t.name)
+        item_names.append("Back")
+        self.tile_settings_view = ScrollableListView(item_names, title="Select Tile")
+        self.state = UIState.TILE_SETTINGS
+
+    def select_in_tile_settings_view(self):
+        chosen = self.tile_settings_view.get_selected_item()
+        if chosen is None:
+            return
+        if chosen == "Back" or (self.tile_settings_view.selected_index == len(self.tile_settings_view.items)-1):
+            self.state = UIState.PAGE_VIEW
+            return
+        elif chosen == "Empty":
+            self.set_current_page_tile(EmptyTile())
+            self.state = UIState.PAGE_VIEW
+            return
+        else:
+            for tile_obj in self.all_tiles:
+                if tile_obj.name == chosen:
+                    self.set_current_page_tile(tile_obj)
+                    break
+            self.state = UIState.PAGE_VIEW
+
+    def set_current_page_tile(self, tile):
+        page = self.pages[self.selected_page_index]
+        if self.selected_tile_index < len(page):
+            page[self.selected_tile_index] = tile
+
+    #
+    # ─────────────────────────── GENERAL SETTINGS ─────────────────────────────
+    #
+
+    def open_general_settings(self):
+        self.state = UIState.GENERAL_SETTINGS
+
+    def select_in_general_settings_view(self):
+        chosen = self.general_settings_view.get_selected_item()
+        if chosen == "Display Name":
+            self.state = UIState.EDIT_DISPLAY_NAME
+        elif chosen == "IP Settings":
+            self.state = UIState.EDIT_IP
+        elif chosen == "Layout":
+            self.state = UIState.LAYOUT_SETTINGS
+        else:
+            pass
+
+    #
+    # ─────────────────────────── LAYOUT SETTINGS ─────────────────────────────
+    #
+
+    def select_in_layout_settings_view(self):
+        chosen = self.layout_settings_view.get_selected_item()
+        if chosen is None:
+            return
+        if chosen == "Back":
+            self.state = UIState.GENERAL_SETTINGS
+            return
+        elif chosen == "2x3":
+            self.set_layout(LayoutOption.TWO_BY_THREE)
+        elif chosen == "2x2":
+            self.set_layout(LayoutOption.TWO_BY_TWO)
+        elif chosen == "2x1":
+            self.set_layout(LayoutOption.TWO_BY_ONE)
+        # Then return to PAGE_VIEW for now or stay in general settings—your call:
+        self.state = UIState.GENERAL_SETTINGS
+
+    def set_layout(self, layout_option: LayoutOption):
+        """
+        1) If the new layout has fewer or more tiles per page, we need
+           to adapt the existing pages or start fresh. For simplicity,
+           we’ll create brand new pages with everything empty. 
+           A more advanced approach: re-map existing tiles to new pages.
+        """
+        self.layout = layout_option
+        self.pages = []
+        self.selected_page_index = 0
+        self.selected_tile_index = 0
+        self.pages.append([EmptyTile() for _ in range(self.num_slots_per_page())])
+
+    #
+    # ─────────────────────────── EVENT HANDLERS ─────────────────────────────
     #
 
     def on_joystick_up(self):
-        """User moved joystick up."""
+        self.record_user_input()
         if self.state == UIState.PAGE_VIEW:
-            # Move the selection up one row in the 2x3 grid
-            if self.selected_tile_index >= 2:
-                self.selected_tile_index -= 2
+            # Move the tile selection up (white cursor)
+            if self.tile_cursor_active:
+                cols = self.num_cols()
+                if self.selected_tile_index >= cols:
+                    self.selected_tile_index -= cols
+            else:
+                # If the cursor is inactive, do nothing or re-activate?
+                pass
         elif self.state == UIState.TILE_SETTINGS:
             self.tile_settings_view.move_up()
         elif self.state == UIState.GENERAL_SETTINGS:
             self.general_settings_view.move_up()
-        # If editing display name or IP, you'd handle that differently (scroll up in a menu, etc.)
+        elif self.state == UIState.LAYOUT_SETTINGS:
+            self.layout_settings_view.move_up()
 
     def on_joystick_down(self):
-        """User moved joystick down."""
+        self.record_user_input()
         if self.state == UIState.PAGE_VIEW:
-            # Move the selection down one row in the 2x3 grid
-            if self.selected_tile_index <= 3:
-                self.selected_tile_index += 2
+            if self.tile_cursor_active:
+                cols = self.num_cols()
+                total_slots = self.num_slots_per_page()
+                if self.selected_tile_index + cols < total_slots:
+                    self.selected_tile_index += cols
+            else:
+                pass
         elif self.state == UIState.TILE_SETTINGS:
             self.tile_settings_view.move_down()
         elif self.state == UIState.GENERAL_SETTINGS:
             self.general_settings_view.move_down()
+        elif self.state == UIState.LAYOUT_SETTINGS:
+            self.layout_settings_view.move_down()
 
     def on_joystick_left(self):
-        if self.state == UIState.PAGE_VIEW:
-            if self.selected_tile_index % 2 == 1:
-                # just move left in the same page
-                self.selected_tile_index -= 1
-            else:
-                # we are in col 0, going left might move to the previous page
+        self.record_user_input()
+        if self.state == UIState.PAGE_VIEW and self.tile_cursor_active:
+            if (self.selected_tile_index % self.num_cols()) == 0:
+                # leftmost col => go to previous page?
                 if self.selected_page_index > 0:
                     self.selected_page_index -= 1
-                    self.selected_tile_index = 5  # rightmost slot
-        # In the tile settings or general settings, do nothing or handle differently
+                    self.selected_tile_index = self.num_slots_per_page() - 1
+            else:
+                self.selected_tile_index -= 1
 
     def on_joystick_right(self):
-        if self.state == UIState.PAGE_VIEW:
-            if self.selected_tile_index % 2 == 0:
-                self.selected_tile_index += 1
-            else:
-                # we are on col 1, going right => move to next page
-                # if it doesn't exist, create it
+        self.record_user_input()
+        if self.state == UIState.PAGE_VIEW and self.tile_cursor_active:
+            cols = self.num_cols()
+            if (self.selected_tile_index % cols) == (cols - 1):
+                # rightmost col => next page
                 self.selected_page_index += 1
                 if self.selected_page_index >= len(self.pages):
-                    self.pages.append([EmptyTile() for _ in range(6)])
+                    self.pages.append([EmptyTile() for _ in range(self.num_slots_per_page())])
                 self.selected_tile_index = 0
+            else:
+                self.selected_tile_index += 1
 
     def on_joystick_middle(self):
-        """Enter or select."""
+        self.record_user_input()
         if self.state == UIState.PAGE_VIEW:
-            # If the user "enters" the tile => open tile settings
+            # Enter tile settings for whichever tile is selected
             self.enter_tile_settings_view()
         elif self.state == UIState.TILE_SETTINGS:
             self.select_in_tile_settings_view()
         elif self.state == UIState.GENERAL_SETTINGS:
             self.select_in_general_settings_view()
-        # If in EDIT_DISPLAY_NAME or EDIT_IP, you might accept input or confirm
+        elif self.state == UIState.LAYOUT_SETTINGS:
+            self.select_in_layout_settings_view()
+        # If we had a separate confirm for EDIT_DISPLAY_NAME or EDIT_IP, handle here
 
     #
-    # ──────────────────────────── PUSH BUTTONS ───────────────────────────
+    # ───────────────────────── PUSH BUTTONS ─────────────────────────
     #
 
     def on_push_button_1(self):
-        """
-        This button is "open general settings" if we're in PAGE_VIEW,
-        or "back" if we're in any other view.
-        """
+        """If in PAGE_VIEW => open general settings. Otherwise => back to PAGE_VIEW."""
+        self.record_user_input()
         if self.state == UIState.PAGE_VIEW:
             self.open_general_settings()
         else:
-            # back => go to PAGE_VIEW
             self.state = UIState.PAGE_VIEW
 
     def on_push_button_2(self):
-        """You can define a different action if needed."""
-        pass
+        """
+        Select the talk group up: i.e. move the selected_talk_group_row up
+        If we exceed top, go to previous page. If no previous page, do nothing or wrap around.
+        """
+        self.record_user_input()
+        if self.state == UIState.PAGE_VIEW:
+            if self.selected_talk_group_row > 0:
+                self.selected_talk_group_row -= 1
+            else:
+                # top row => previous page if possible
+                if self.selected_page_index > 0:
+                    self.selected_page_index -= 1
+                    self.selected_talk_group_row = self.num_rows() - 1
+        else:
+            # In other states, do nothing or define your own logic
+            pass
 
     def on_push_button_3(self):
-        """You can define a different action if needed."""
-        pass
+        """
+        Select the talk group down: move selected_talk_group_row down
+        If we exceed last row => next page
+        """
+        self.record_user_input()
+        if self.state == UIState.PAGE_VIEW:
+            if self.selected_talk_group_row < (self.num_rows() - 1):
+                self.selected_talk_group_row += 1
+            else:
+                # bottom row => next page
+                self.selected_page_index += 1
+                if self.selected_page_index >= len(self.pages):
+                    self.pages.append([EmptyTile() for _ in range(self.num_slots_per_page())])
+                self.selected_talk_group_row = 0
+        else:
+            pass
 
 
-#
-#  ┌───────────────────────────────────────────────────────────────────┐
-#  │               EXAMPLE: USING THE UI MANAGER                     │
-#  └───────────────────────────────────────────────────────────────────┘
-
-# if __name__ == "__main__":
-#     # Example tile data
-#     tileA = Tile("Tile A", volume=0, id=1)
-#     tileB = Tile("Tile B", volume=1, id=2)
-#     tileC = Tile("Tile C", volume=-1, id=3)
-#     tileD = Tile("Tile D", volume=2, id=4)
-
-#     all_tiles = [tileA, tileB, tileC, tileD]
-
-#     ui_manager = UIManager(all_tiles)
-
-#     # Pretend we have event callbacks for joystick and pushbuttons
-#     # For demonstration, we'll do a simple loop. Press Ctrl+C to exit.
-
-#     try:
-#         while True:
-#             # Render the current UI state
-#             ui_manager.render()
-
-#             # In real life, you'd have callbacks that call:
-#             # ui_manager.on_joystick_up()
-#             # ui_manager.on_joystick_down()
-#             # ui_manager.on_joystick_left()
-#             # ui_manager.on_joystick_right()
-#             # ui_manager.on_joystick_middle()
-#             # ui_manager.on_push_button_1(), etc.
-
-#             # Here we'll just simulate a timed blink update
-#             time.sleep(0.3)
-
-#     except KeyboardInterrupt:
-#         print("Exiting.")

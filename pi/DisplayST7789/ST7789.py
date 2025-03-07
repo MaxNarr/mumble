@@ -5,8 +5,8 @@ from DisplayST7789 import config
 
 class ST7789(config.RaspberryPi):
 
-    width = 238
-    height = 238
+    width = 239
+    height = 239
     def command(self, cmd):
         self.digital_write(self.GPIO_DC_PIN, False)
         self.spi_writebyte([cmd])      

@@ -1,262 +1,85 @@
 #!/usr/bin/env python3
 
 import time
-from PIL import Image, ImageDraw, ImageFont
-from DisplayST7789 import ST7789 #st7735
-import spidev as SPI
 import math
-CALLPHRASE= "calling"
+import spidev as SPI
+from PIL import Image, ImageDraw, ImageFont
+from enum import Enum
+
+# Replace with your local ST7789 driver import
+from DisplayST7789 import ST7789
+
+CALLPHRASE = "calling"
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐
-#  │            DISPLAY INITIALIZATION (GLOBAL)                    │
+#  │                DISPLAY / HARDWARE INITIALIZATION              │
 #  └────────────────────────────────────────────────────────────────┘
 
-# disp = st7735.ST7735(
-#     port=0,
-#     cs=st7735.BG_SPI_CS_BACK,
-#     dc="GPIO24",
-#     backlight="GPIO22",
-#     rst="GPIO25",
-#     rotation=90,
-#     invert=False,
-#     bgr=False,
-#     spi_speed_hz=4000000
-# )
-
-# 1) Create and Init the Display
-disp = ST7789.ST7789()    # Pass any constructor args you need (width, height, etc.)
+disp = ST7789.ST7789()
 disp.Init()
 disp.clear()
-# 2) Optionally Set Backlight Brightness to 50%
 disp.bl_DutyCycle(100)
-# 3) Query Display Width & Height
+
 DISPLAY_WIDTH = disp.width
 DISPLAY_HEIGHT = disp.height
 
+#
+#  ┌───────────────────────────────────────────────────────────┐
+#  │                    GLOBAL CONSTANTS                      │
+#  └───────────────────────────────────────────────────────────┘
 
 MINVOLUME = -2
 MAXVOLUME = 2
-# New constant: blink duration (in seconds)
-BLINK_DURATION = 5
-# We’ll define a "blink" rate for is_calledByUser
-BLINK_INTERVAL = 0.5  # seconds
 
-# A base font for smaller text (volume, etc.)
+BLINK_DURATION = 5
+BLINK_INTERVAL = 0.5
+
 BASE_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 10)  # For volume or "muted"
+FONT = ImageFont.truetype(BASE_FONT_PATH, 14)
+VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 10)
 MIN_NAME_FONT_SIZE = 11
-MAX_NAME_FONT_SIZE = 30  # channel name tries up to size 30
+MAX_NAME_FONT_SIZE = 30
 
 #
-#  ┌────────────────────────────────────────────────────────────────┐
-#  │          FALLBACK TEXT SIZE FOR OLDER PIL VERSIONS            │
-#  └────────────────────────────────────────────────────────────────┘
-
-FONT = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 14)
+#  ┌───────────────────────────────────────────────────────────┐
+#  │                 HELPER FUNCTIONS                         │
+#  └───────────────────────────────────────────────────────────┘
 
 def get_text_dimensions(text, font):
-    """
-    Returns (width, height) of single-line `text` using `font.getmask()`.
-    This helps if your Pillow version doesn't have draw.textsize or font.getsize.
-    """
+    """Return (width, height) for single-line text."""
     mask = font.getmask(text)
     return mask.size
 
 def draw_centered_text(draw_obj, x, y, w, h, text, font, color=(255,255,255)):
-    """
-    Draw `text` centered in a rectangle (x,y,w,h).
-    """
+    """Draw text centered in the rectangle (x, y, w, h)."""
     text_w, text_h = get_text_dimensions(text, font)
     text_x = x + (w - text_w) // 2
     text_y = y + (h - text_h) // 2
     draw_obj.text((text_x, text_y), text, font=font, fill=color)
 
-
-
-def display_six_tile_menu(selected_tile=0, labels=None):
-    """
-    Draws 6 tiles (2 columns x 3 rows):
-      +---------+---------+
-      |   0     |    1    |
-      +---------+---------+
-      |   2     |    3    |
-      +---------+---------+
-      |   4     |    5    |
-      +---------+---------+
-    - White outline
-    - Black background for unselected
-    - Inverted (white bg, black text) for selected tile
-    """
-    if labels is None:
-        labels = [f"Item {i+1}" for i in range(6)]
-
-    img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0, 0, 0))
-    draw = ImageDraw.Draw(img)
-
-    tile_w = DISPLAY_WIDTH // 2
-    tile_h = DISPLAY_HEIGHT // 3
-
-    coords = []
-    idx = 0
-    for row in range(3):
-        for col in range(2):
-            x = col * tile_w
-            y = row * tile_h
-            coords.append((x, y))
-            idx += 1
-
-    for i, (tx, ty) in enumerate(coords):
-        if i == selected_tile:
-            fill_color = (255, 255, 255)
-            text_color = (0, 0, 0)
-        else:
-            fill_color = (0, 0, 0)
-            text_color = (255, 255, 255)
-
-        draw.rectangle(
-            (tx, ty, tx + tile_w, ty + tile_h),
-            fill=fill_color,
-            outline=(255,255,255)
-        )
-        draw_centered_text(draw, tx, ty, tile_w, tile_h, labels[i], FONT, text_color)
-
-    disp.ShowImage(img)
-
-
-#
-#  ┌────────────────────────────────────────────────────────────────┐
-#  │           KEYBOARD + TEXT FIELD (BOTTOM 2/3 + TOP 1/3)        │
-#  └────────────────────────────────────────────────────────────────┘
-
-# Keyboard rows (no umlauts)
-ROW0 = ["Q","W","E","R","T","Z","U","I","O","P"]  # 10
-ROW1 = ["A","S","D","F","G","H","J","K","L"]      # 9
-ROW2 = ["Y","X","C","V","B","N","M"]              # 7
-ALL_LETTERS = ROW0 + ROW1 + ROW2
-
-# Offsets for each row (like a real keyboard)
-ROW_OFFSETS = [0.0, 0.5, 1.0]
-
-# Globals for typed text and selection
-typed_text = ""
-selected_key_index = 0
-
-def display_keyboard_screen(selected_key, typed_text):
-    """
-    1) A text field in the top 1/3
-    2) A QWERTZ keyboard in the bottom 2/3, row2 further to the right
-    """
-    img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0, 0, 0))
-    draw = ImageDraw.Draw(img)
-
-    # Text field area
-    text_field_height = DISPLAY_HEIGHT // 3
-    draw.rectangle((0, 0, DISPLAY_WIDTH, text_field_height),
-                   outline=(255,255,255), fill=(0,0,0))
-    draw_centered_text(draw, 0, 0, DISPLAY_WIDTH, text_field_height, typed_text, FONT, (255,255,255))
-
-    # Keyboard area
-    kb_top_y = text_field_height
-    kb_height = DISPLAY_HEIGHT - text_field_height
-    margin_x = 0
-    usable_width = DISPLAY_WIDTH - 20  # keep a 20-pixel margin on the right
-
-    row_height = kb_height / 3
-    cur_index = 0
-
-    for r, row_letters in enumerate([ROW0, ROW1, ROW2]):
-        y = int(kb_top_y + r * row_height)
-        h = int(row_height)
-        num_cols = len(row_letters)
-        key_width = usable_width / num_cols
-
-        offset_pixels = int(ROW_OFFSETS[r] * key_width)
-
-        for c, letter in enumerate(row_letters):
-            x = margin_x + offset_pixels + int(c * key_width)
-            w = int(key_width)
-
-            if cur_index == selected_key:
-                fill_color = (255,255,255)
-                text_color = (0,0,0)
-            else:
-                fill_color = (0,0,0)
-                text_color = (255,255,255)
-
-            draw.rectangle((x, y, x + w, y + h),
-                           fill=fill_color,
-                           outline=(255,255,255))
-            draw_centered_text(draw, x, y, w, h, letter, FONT, text_color)
-
-            cur_index += 1
-
-    disp.ShowImage(img)
-
-def process_input(delta, select):
-    """
-    Moves selection by delta {-1,0,+1}:
-      -1 = previous key
-       0 = no move
-      +1 = next key
-    If `select` is True, append the current letter to typed_text.
-    Then update the display.
-    """
-    global selected_key_index, typed_text
-
-    if delta != 0:
-        selected_key_index = (selected_key_index + delta) % len(ALL_LETTERS)
-
-    if select:
-        typed_text += ALL_LETTERS[selected_key_index]
-
-    display_keyboard_screen(selected_key_index, typed_text)
-
-def get_textfield_content():
-    """
-    Returns the typed text so far.
-    """
-    return typed_text
-
-
-
 def current_blink_state() -> bool:
-    """
-    Returns True if we should draw the 'on' (red) state,
-    or False if we should draw the 'off' (black) state.
-    We toggle every BLINK_INTERVAL seconds.
-    """
+    """Blink toggles every BLINK_INTERVAL seconds."""
     now = time.time()
     cycle = math.floor(now / BLINK_INTERVAL)
     return (cycle % 2) == 0
 
-def get_text_dimensions(text, font):
-    """
-    Returns (width, height) of single-line `text` using getmask().
-    (Fallback for older PIL versions lacking font.getsize or draw.textsize.)
-    """
-    mask = font.getmask(text)
-    return mask.size
-
 
 #
-#  ┌──────────────────────────────────────────────────────────┐
-#  │  TILE CLASS                                             │
-#  └──────────────────────────────────────────────────────────┘
-
-
+#  ┌───────────────────────────────────────────────────────────┐
+#  │                       TILE CLASS                         │
+#  └───────────────────────────────────────────────────────────┘
 
 class Tile:
     """
-    One tile with states:
+    A tile can be placed in a page slot. Contains:
       - name
-      - volume (-2..2; -3 => muted => "muted" red box)
-      - is_calledByUser => blink red for BLINK_DURATION seconds and display caller info,
-          then reset to None to return to default color.
-      - selected => white bg, black text
-      - talking => green bg
+      - volume (-2..2; -3 => "muted")
+      - is_calledByUser => triggers blinking
+      - selected => highlight tile
+      - talking => show green
+      - id => identifier
     """
-
     def __init__(self, name: str,
                  volume: int = 0,
                  is_calledByUser: str = None,
@@ -269,7 +92,7 @@ class Tile:
         self.selected = selected
         self.talking = talking
         self.id = id
-        self.blink_start = None  # Initialize blink timer
+        self.blink_start = None
 
     def set_volume(self, new_volume: int):
         import mumbleRPC
@@ -284,44 +107,41 @@ class Tile:
 
     def draw(self, draw_obj: ImageDraw.ImageDraw,
              x: int, y: int, w: int, h: int):
-        # Decide background + text colors
+        """
+        Draws the tile rectangle plus text. If 'selected', tile is white.
+        If 'talking', tile is green. If 'is_calledByUser', it blinks red.
+        """
         bg_color = (0, 0, 0)
         text_color = (255, 255, 255)
 
         if self.selected:
-            # Highest priority: selected
-            bg_color = (255, 255, 255)  # white
-            text_color = (0, 0, 0)        # black
+            bg_color = (255, 255, 255)
+            text_color = (0, 0, 0)
         else:
+            # handle blinking
             if self.is_calledByUser:
-                # Start the blink timer if not already started
                 if self.blink_start is None:
                     self.blink_start = time.time()
-                # If within BLINK_DURATION, blink; otherwise, reset is_calledByUser and timer
                 if time.time() - self.blink_start < BLINK_DURATION:
                     if current_blink_state():
-                        bg_color = (255, 0, 0)  # red blink
+                        bg_color = (255, 0, 0)  # red
                     else:
                         bg_color = (0, 0, 0)
                 else:
-                    # Reset the is_calledByUser state and timer after 5 seconds
                     self.is_calledByUser = None
                     self.blink_start = None
                     bg_color = (0, 0, 0)
                 text_color = (255, 255, 255)
             elif self.talking:
-                bg_color = (0, 128, 0)  # green
+                bg_color = (0, 128, 0)
                 text_color = (255, 255, 255)
             else:
                 bg_color = (0, 0, 0)
                 text_color = (255, 255, 255)
 
-        # Draw the tile background + white border
-        draw_obj.rectangle((x, y, x+w, y+h),
-                           fill=bg_color,
-                           outline=(255, 255, 255))
+        draw_obj.rectangle((x, y, x+w, y+h), fill=bg_color, outline=(255, 255, 255))
 
-        # Large name at top
+        # Auto-fit the tile's name
         left_margin = 5
         right_margin = 5
         top_margin = 5
@@ -350,8 +170,8 @@ class Tile:
         name_y = y + top_margin
         draw_obj.text((name_x, name_y), self.name, font=best_font, fill=text_color)
 
-        # Then volume or muted
-        if self.volume == MINVOLUME-1:
+        # Volume or "muted"
+        if self.volume == MINVOLUME - 1:
             msg = "muted"
             msg_w, msg_h = get_text_dimensions(msg, VOLUME_FONT)
             vol_x = x + (w - msg_w) // 2
@@ -373,138 +193,439 @@ class Tile:
             vol_y = name_y + th + 5
             draw_obj.text((vol_x, vol_y), msg, font=VOLUME_FONT, fill=text_color)
 
-        # If still in the blinking phase, display the caller's name at the bottom
-        if self.is_calledByUser:
-            caller_text = self.is_calledByUser
-            caller_font = ImageFont.truetype(BASE_FONT_PATH, 10)
-            caller_w, caller_h = get_text_dimensions(caller_text, caller_font)
-            caller_x = x + (w - caller_w) // 2
-            caller_y = y + h - caller_h - 5  # 5-pixel margin from bottom
-            draw_obj.text((caller_x, caller_y), caller_text, font=caller_font, fill=text_color)
 
 #
-#  ┌──────────────────────────────────────────────────────────┐
-#  │  TILEMANAGER CLASS                                      │
-#  └──────────────────────────────────────────────────────────┘
+#  ┌───────────────────────────────────────────────────────────┐
+#  │                 "EMPTY"/PLUS TILE CLASS                  │
+#  └───────────────────────────────────────────────────────────┘
 
-class TileManager:
+class EmptyTile(Tile):
     """
-    Manages a list of Tile objects with paging + layouts:
-      layout="4" => 4 tiles/page (2x2)
-      layout="2" => 2 tiles/page side-by-side
-
-    The top 1/4 of screen is for a page bar. We also have a boolean
-    page_selected => if True, we invert the bar colors.
+    This tile is displayed if there's no actual tile in that slot.
+    It just shows a plus sign to indicate you can add something.
     """
+    def __init__(self):
+        super().__init__(name="+", id=-1)
 
-    def __init__(self, tiles):
-        """
-        tiles: list of Tile objects
-        """
-        self.tiles = tiles
-        self.page_selected = False  # new state: highlight top bar if True
-        self.tile_selected = 1  # index of selected tile
+    def draw(self, draw_obj: ImageDraw.ImageDraw,
+             x: int, y: int, w: int, h: int):
+        # We'll just draw a plus sign in the center
+        bg_color = (255, 255, 255) if self.selected else (0, 0, 0)
+        text_color = (0, 0, 0) if self.selected else (255, 255, 255)
+        draw_obj.rectangle((x, y, x+w, y+h), fill=bg_color, outline=(255, 255, 255))
+        draw_centered_text(draw_obj, x, y, w, h, "+", FONT, text_color)
 
-        # Keep track of the last page + layout used, so 'update()' can re-render
-        self.last_page = 0
-        self.last_layout = "4"
 
-    def getTile(self, index: int = -1,autoselect=False)->Tile:
-        if index == -1: 
-            index=self.tile_selected
-        return self.tiles[index]
-    
-    def nextTile(self, step:int=1, autoselect=False)->Tile:
-        self.tile_selected= (self.tile_selected+step)%len(self.tiles)
-        return self.getTile(autoselect)
+#
+# ┌────────────────────────────────────────────────────────────┐
+# │  SCROLLABLE LIST VIEW (for Tile Settings, Gen. Settings)  │
+# └────────────────────────────────────────────────────────────┘
 
-    def select_page_bar(self, selected: bool):
-        """Set whether the page bar is selected (inverted colors)."""
-        self.page_selected = selected
+class ScrollableListView:
+    """
+    A generic vertical-list view that displays items as text rows.
+    'items' is a list of strings. 'selected_index' is the current row selection.
+    The user can scroll up/down. The user can select an item with 'middle button'.
+    The maximum items displayed per "screen" is determined by the row height.
+    """
+    def __init__(self, items, title=""):
+        self.items = items
+        self.selected_index = 0
+        self.title = title
+        # We'll compute how many items can fit on-screen
+        self.item_height = 25  # for example
+        self.scroll_offset = 0  # index of the topmost item displayed
 
-    def render(self, page_number: int = 0, layout: str = "4"):
-        """
-        Draws the page of tiles onto ST7735. Also draws a page bar at the top.
-        Save page_number + layout so we can re-call them in update().
-        """
-        self.last_page = page_number
-        self.last_layout = layout
-        offset = 1 # this means we will skip the channel "root" which is always id 0 
-        # 1) Determine which tiles are on this page
-        if layout == "4":
-            start_idx = page_number * 4 
-            end_idx = start_idx + 4 
-        elif layout == "2":
-            start_idx = page_number * 2
-            end_idx = start_idx + 2
-        else:
-            raise ValueError("Invalid layout. Use '4' or '2'.")
+    def move_up(self):
+        if self.selected_index > 0:
+            self.selected_index -= 1
+        # Adjust scroll offset
+        if self.selected_index < self.scroll_offset:
+            self.scroll_offset = self.selected_index
 
-        self.tiles.sort(key=lambda tile: tile.id)
-        page_tiles = self.tiles[start_idx+offset:end_idx+offset]
+    def move_down(self):
+        if self.selected_index < len(self.items) - 1:
+            self.selected_index += 1
+        # If the selection goes beyond the bottom displayed item,
+        # shift the window
+        max_items_on_screen = (DISPLAY_HEIGHT // self.item_height) - 1  # minus 1 if we want a title
+        if self.selected_index > self.scroll_offset + max_items_on_screen:
+            self.scroll_offset = self.selected_index - max_items_on_screen
 
-        # 2) Create image
+    def render(self):
         img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0,0,0))
         draw = ImageDraw.Draw(img)
 
-        # 2a) Draw the page bar at top 1/4
-        top_bar_h = DISPLAY_HEIGHT // 4
-        page_text = f"Page {page_number}"
+        # Draw title at top
+        title_height = 25
+        draw.rectangle((0, 0, DISPLAY_WIDTH, title_height), fill=(255,255,255))
+        draw_centered_text(draw, 0, 0, DISPLAY_WIDTH, title_height, self.title, FONT, (0,0,0))
 
-        # If page bar is selected => invert colors
-        if self.page_selected:
-            bar_bg = (255,255,255)
-            bar_text_color = (0,0,0)
-        else:
-            bar_bg = (0,0,0)
-            bar_text_color = (255,255,255)
+        # Start drawing items below title
+        y_start = title_height
+        # how many items fit
+        max_visible = (DISPLAY_HEIGHT - title_height) // self.item_height
 
-        # Fill top bar
-        draw.rectangle((0, 0, DISPLAY_WIDTH, top_bar_h), fill=bar_bg)
+        visible_items = self.items[self.scroll_offset:self.scroll_offset + max_visible]
 
-        # Center the text in that region
-        page_font = ImageFont.truetype(BASE_FONT_PATH, 18)
-        ptw, pth = get_text_dimensions(page_text, page_font)
-        px = (DISPLAY_WIDTH - ptw)//2
-        py = (top_bar_h - pth)//2
-        draw.text((px, py), page_text, font=page_font, fill=bar_text_color)
+        for idx, item_text in enumerate(visible_items):
+            actual_index = self.scroll_offset + idx
+            y = y_start + idx * self.item_height
+            # highlight if selected
+            if actual_index == self.selected_index:
+                bg = (255, 255, 255)
+                fg = (0, 0, 0)
+            else:
+                bg = (0, 0, 0)
+                fg = (255, 255, 255)
+            draw.rectangle((0, y, DISPLAY_WIDTH, y + self.item_height), fill=bg)
+            draw_centered_text(draw, 0, y, DISPLAY_WIDTH, self.item_height, item_text, FONT, fg)
 
-        # 3) The bottom 3/4 region => tiles
-        tile_area_y = top_bar_h
-        tile_area_h = DISPLAY_HEIGHT - top_bar_h
-
-        # 4) Layout positions
-        if layout == "4":
-            # 2x2
-            tile_w = DISPLAY_WIDTH // 2
-            tile_h = tile_area_h // 2
-            coords = [
-                (0,               tile_area_y),
-                (tile_w,          tile_area_y),
-                (0,               tile_area_y + tile_h),
-                (tile_w,          tile_area_y + tile_h),
-            ]
-        else:
-            # layout="2"
-            tile_w = DISPLAY_WIDTH // 2
-            tile_h = tile_area_h
-            coords = [
-                (0, tile_area_y),
-                (tile_w, tile_area_y),
-            ]
-
-        # 5) Draw each tile
-        for i, tile in enumerate(page_tiles):
-            if i < len(coords):
-                x, y = coords[i]
-                tile.draw(draw, x, y, tile_w, tile_h)
-
-        # 6) Show it
         disp.ShowImage(img)
 
-    def update(self):
+    def get_selected_item(self):
+        if len(self.items) == 0:
+            return None
+        return self.items[self.selected_index]
+
+
+#
+#  ┌───────────────────────────────────────────────────────────┐
+#  │                UI STATE MACHINE SETUP                    │
+#  └───────────────────────────────────────────────────────────┘
+
+class UIState(Enum):
+    PAGE_VIEW = 1
+    TILE_SETTINGS = 2
+    GENERAL_SETTINGS = 3
+    EDIT_DISPLAY_NAME = 4
+    EDIT_IP = 5
+    # etc...
+
+
+class UIManager:
+    """
+    Handles what screen we are on, manages pages of tiles,
+    handles the tile settings list, general settings, etc.
+    """
+
+    def __init__(self, all_tiles):
+        # A pool of all possible tiles (besides "EmptyTile")
+        self.all_tiles = all_tiles
+
+        # We'll store pages as a list of lists.
+        # Each page has 6 slots (2x3). Each slot is either a Tile or an EmptyTile.
+        self.pages = []
+        # Create the first page with all empty
+        self.pages.append([EmptyTile() for _ in range(6)])
+        self.selected_page_index = 0
+        self.selected_tile_index = 0  # which of the 6 slots on the current page is selected
+
+        # Current UI state
+        self.state = UIState.PAGE_VIEW
+
+        # For the scrollable list (TileSettings, GeneralSettings)
+        self.tile_settings_view = None
+        self.general_settings_view = None
+
+        # Some dummy data for general settings
+        self.display_name = "My Pi"
+        self.ip_address = "192.168.0.100"
+        self.use_dhcp = True
+
+        self.init_general_settings_view()
+
+    def init_general_settings_view(self):
+        # A list of items for general settings
+        # We'll store them as strings for simplicity
+        items = ["Display Name", "IP Settings"]
+        # We could add more items here, e.g. "Audio Settings", etc.
+        self.general_settings_view = ScrollableListView(items, title="General Settings")
+
+    #
+    # ───────────────────────────────── PAGE VIEW ─────────────────────────────────
+    #
+
+    def render_page_view(self):
         """
-        Re-render the same page + layout as last time.
-        Call this repeatedly to achieve blinking.
+        Draw the current page of 2x3 tiles, with the selected tile highlighted.
+        If we have multiple pages, show some indicator at the top bar maybe.
         """
-        self.render(self.last_page, self.last_layout)
+        img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0,0,0))
+        draw = ImageDraw.Draw(img)
+
+        # Optionally draw a top bar with the page number
+        top_bar_h = 24
+        draw.rectangle((0, 0, DISPLAY_WIDTH, top_bar_h), fill=(255,255,255))
+        page_text = f"Page {self.selected_page_index+1}"
+        draw_centered_text(draw, 0, 0, DISPLAY_WIDTH, top_bar_h, page_text, FONT, (0,0,0))
+
+        # 2x3 layout
+        tile_area_y = top_bar_h
+        tile_area_h = DISPLAY_HEIGHT - top_bar_h
+        tile_w = DISPLAY_WIDTH // 2
+        tile_h = tile_area_h // 3
+
+        coords = []
+        for row in range(3):
+            for col in range(2):
+                x = col * tile_w
+                y = tile_area_y + row * tile_h
+                coords.append((x, y))
+
+        # Mark the selected slot
+        page = self.pages[self.selected_page_index]
+
+        # Draw each tile
+        for i in range(6):
+            tile = page[i]
+            if i == self.selected_tile_index:
+                tile.selected = True
+            else:
+                tile.selected = False
+
+            x, y = coords[i]
+            tile.draw(draw, x, y, tile_w, tile_h)
+
+        disp.ShowImage(img)
+
+    #
+    # ───────────────────────────── TILE SETTINGS ─────────────────────────────
+    #
+
+    def enter_tile_settings_view(self):
+        """
+        Build a list of items: "Empty", all tile names, and "Back".
+        Use the ScrollableListView to let the user pick one.
+        """
+        # We'll build the list in this order: "Empty", <all tile names>, "Back"
+        item_names = ["Empty"]
+        for t in self.all_tiles:
+            item_names.append(t.name)
+        item_names.append("Back")
+        self.tile_settings_view = ScrollableListView(item_names, title="Select Tile")
+        self.state = UIState.TILE_SETTINGS
+
+    def render_tile_settings_view(self):
+        self.tile_settings_view.render()
+
+    def select_in_tile_settings_view(self):
+        """User pressed 'middle' on a tile in the settings list."""
+        chosen = self.tile_settings_view.get_selected_item()
+        if chosen is None:
+            return
+
+        # If "Back", or if we are at the last item
+        if chosen == "Back" or (self.tile_settings_view.selected_index == len(self.tile_settings_view.items) - 1):
+            # Just go back
+            self.state = UIState.PAGE_VIEW
+            return
+
+        # If "Empty"
+        if chosen == "Empty":
+            self.set_current_page_tile(EmptyTile())
+            self.state = UIState.PAGE_VIEW
+            return
+
+        # Otherwise, find the tile in self.all_tiles
+        for tile_obj in self.all_tiles:
+            if tile_obj.name == chosen:
+                # Assign that tile to the selected slot
+                # (We might want to create a new instance if the tile is mutable.)
+                # For simplicity, we just set the reference.
+                # If you need a new instance, you'd do something like: Tile(tile_obj.name, etc.)
+                self.set_current_page_tile(tile_obj)
+                break
+
+        self.state = UIState.PAGE_VIEW
+
+    def set_current_page_tile(self, tile):
+        self.pages[self.selected_page_index][self.selected_tile_index] = tile
+
+    #
+    # ───────────────────────────── GENERAL SETTINGS ─────────────────────────────
+    #
+
+    def open_general_settings(self):
+        """Called when in PAGE_VIEW and user presses 'pushbutton1' (the back button)."""
+        self.state = UIState.GENERAL_SETTINGS
+
+    def render_general_settings_view(self):
+        self.general_settings_view.render()
+
+    def select_in_general_settings_view(self):
+        chosen = self.general_settings_view.get_selected_item()
+        if chosen == "Display Name":
+            self.state = UIState.EDIT_DISPLAY_NAME
+            return
+        elif chosen == "IP Settings":
+            self.state = UIState.EDIT_IP
+            return
+        # Potentially more items here
+
+    #
+    # ───────────────────────────── EDIT DISPLAY NAME ─────────────────────────────
+    #
+    # This would be where you show the keyboard. For simplicity, we just show a placeholder.
+
+    def render_edit_display_name(self):
+        img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0,0,0))
+        draw = ImageDraw.Draw(img)
+        msg = f"Editing display name:\n{self.display_name}\n(TODO: Implement keyboard screen)"
+        draw.text((5, 5), msg, font=FONT, fill=(255,255,255))
+        disp.ShowImage(img)
+
+    #
+    # ───────────────────────────── EDIT IP SETTINGS ─────────────────────────────
+    #
+
+    def render_edit_ip(self):
+        img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), color=(0,0,0))
+        draw = ImageDraw.Draw(img)
+        msg = "IP Settings:\n"
+        msg += f"Current IP: {self.ip_address}\n"
+        msg += "DHCP: " + ("On" if self.use_dhcp else "Off") + "\n"
+        msg += "(TODO: Implement numpad & DHCP toggle)\n"
+        draw.text((5,5), msg, font=FONT, fill=(255,255,255))
+        disp.ShowImage(img)
+
+    #
+    # ─────────────────────────────────── RENDER ──────────────────────────────────
+    #
+
+    def render(self):
+        if self.state == UIState.PAGE_VIEW:
+            self.render_page_view()
+        elif self.state == UIState.TILE_SETTINGS:
+            self.render_tile_settings_view()
+        elif self.state == UIState.GENERAL_SETTINGS:
+            self.render_general_settings_view()
+        elif self.state == UIState.EDIT_DISPLAY_NAME:
+            self.render_edit_display_name()
+        elif self.state == UIState.EDIT_IP:
+            self.render_edit_ip()
+        # Extend for more states as needed
+
+    #
+    # ──────────────────────────── EVENT HANDLERS ───────────────────────────────
+    #
+
+    def on_joystick_up(self):
+        """User moved joystick up."""
+        if self.state == UIState.PAGE_VIEW:
+            # Move the selection up one row in the 2x3 grid
+            if self.selected_tile_index >= 2:
+                self.selected_tile_index -= 2
+        elif self.state == UIState.TILE_SETTINGS:
+            self.tile_settings_view.move_up()
+        elif self.state == UIState.GENERAL_SETTINGS:
+            self.general_settings_view.move_up()
+        # If editing display name or IP, you'd handle that differently (scroll up in a menu, etc.)
+
+    def on_joystick_down(self):
+        """User moved joystick down."""
+        if self.state == UIState.PAGE_VIEW:
+            # Move the selection down one row in the 2x3 grid
+            if self.selected_tile_index <= 3:
+                self.selected_tile_index += 2
+        elif self.state == UIState.TILE_SETTINGS:
+            self.tile_settings_view.move_down()
+        elif self.state == UIState.GENERAL_SETTINGS:
+            self.general_settings_view.move_down()
+
+    def on_joystick_left(self):
+        if self.state == UIState.PAGE_VIEW:
+            if self.selected_tile_index % 2 == 1:
+                # just move left in the same page
+                self.selected_tile_index -= 1
+            else:
+                # we are in col 0, going left might move to the previous page
+                if self.selected_page_index > 0:
+                    self.selected_page_index -= 1
+                    self.selected_tile_index = 5  # rightmost slot
+        # In the tile settings or general settings, do nothing or handle differently
+
+    def on_joystick_right(self):
+        if self.state == UIState.PAGE_VIEW:
+            if self.selected_tile_index % 2 == 0:
+                self.selected_tile_index += 1
+            else:
+                # we are on col 1, going right => move to next page
+                # if it doesn't exist, create it
+                self.selected_page_index += 1
+                if self.selected_page_index >= len(self.pages):
+                    self.pages.append([EmptyTile() for _ in range(6)])
+                self.selected_tile_index = 0
+
+    def on_joystick_middle(self):
+        """Enter or select."""
+        if self.state == UIState.PAGE_VIEW:
+            # If the user "enters" the tile => open tile settings
+            self.enter_tile_settings_view()
+        elif self.state == UIState.TILE_SETTINGS:
+            self.select_in_tile_settings_view()
+        elif self.state == UIState.GENERAL_SETTINGS:
+            self.select_in_general_settings_view()
+        # If in EDIT_DISPLAY_NAME or EDIT_IP, you might accept input or confirm
+
+    #
+    # ──────────────────────────── PUSH BUTTONS ───────────────────────────
+    #
+
+    def on_push_button_1(self):
+        """
+        This button is "open general settings" if we're in PAGE_VIEW,
+        or "back" if we're in any other view.
+        """
+        if self.state == UIState.PAGE_VIEW:
+            self.open_general_settings()
+        else:
+            # back => go to PAGE_VIEW
+            self.state = UIState.PAGE_VIEW
+
+    def on_push_button_2(self):
+        """You can define a different action if needed."""
+        pass
+
+    def on_push_button_3(self):
+        """You can define a different action if needed."""
+        pass
+
+
+#
+#  ┌───────────────────────────────────────────────────────────────────┐
+#  │               EXAMPLE: USING THE UI MANAGER                     │
+#  └───────────────────────────────────────────────────────────────────┘
+
+# if __name__ == "__main__":
+#     # Example tile data
+#     tileA = Tile("Tile A", volume=0, id=1)
+#     tileB = Tile("Tile B", volume=1, id=2)
+#     tileC = Tile("Tile C", volume=-1, id=3)
+#     tileD = Tile("Tile D", volume=2, id=4)
+
+#     all_tiles = [tileA, tileB, tileC, tileD]
+
+#     ui_manager = UIManager(all_tiles)
+
+#     # Pretend we have event callbacks for joystick and pushbuttons
+#     # For demonstration, we'll do a simple loop. Press Ctrl+C to exit.
+
+#     try:
+#         while True:
+#             # Render the current UI state
+#             ui_manager.render()
+
+#             # In real life, you'd have callbacks that call:
+#             # ui_manager.on_joystick_up()
+#             # ui_manager.on_joystick_down()
+#             # ui_manager.on_joystick_left()
+#             # ui_manager.on_joystick_right()
+#             # ui_manager.on_joystick_middle()
+#             # ui_manager.on_push_button_1(), etc.
+
+#             # Here we'll just simulate a timed blink update
+#             time.sleep(0.3)
+
+#     except KeyboardInterrupt:
+#         print("Exiting.")

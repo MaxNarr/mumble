@@ -6,7 +6,7 @@ import os
 import threading
 from threading import Thread
 import json
-from displayLib import Tile, TileManager
+from displayLib import Tile, UIManager
 import displayLib
 import mumbleRPC
 import jackcontroll
@@ -30,11 +30,22 @@ ENCODER2_PIN_CS = 2
 ENCODER2_PIN_DS = 3
 ENCODER2_PIN_BTN = 4
 
+KEY_UP_PIN     = 6 
+KEY_DOWN_PIN   = 19
+KEY_LEFT_PIN   = 5
+KEY_RIGHT_PIN  = 26
+KEY_PRESS_PIN  = 13
+
+KEY1_PIN       = 21
+KEY2_PIN       = 20
+KEY3_PIN       = 16
+
+
 capture_ports = None
 playback_ports = None
 jackstarted = False
 tiles: List[displayLib.Tile] = None 
-manager: TileManager = None
+manager: UIManager = None
 last_press_time1 = 0
 last_press_time2 = 0
 double_press_threshold = 0.7  # Maximum time (seconds) between presses
@@ -75,7 +86,55 @@ def on_release2():
         print("stop talking2")
         mumbleRPC.talk(manager.getTile(),on=False)
         print("stop talking3")
+#             # 
+#             # 
+#             # 
+#             # 
+#             # 
+#             # , etc.
 
+# Event functions for new buttons
+def on_press_up():
+	ui_manager.on_joystick_up()
+
+def on_release_up():
+	pass
+
+def on_press_down():
+	ui_manager.on_joystick_down()
+
+def on_release_down():
+	pass
+
+def on_press_right():
+	ui_manager.on_joystick_right()
+
+def on_release_right():
+	pass
+
+def on_press_left():
+	ui_manager.on_joystick_left()
+
+def on_release_left():
+	pass
+
+def on_press_middle():
+	ui_manager.on_joystick_middle()
+
+def on_release_middle():
+	pass
+
+def on_press_disp1():
+	ui_manager.on_push_button_1()
+
+def on_release_disp1():
+	pass
+
+def on_press_disp2():
+	pass
+
+def on_release_disp2():
+    pass
 
 def main():
     jackstarted = jackcontroll.start_jackd()
@@ -106,11 +165,47 @@ def setupControlls():
 def wait_for_buttons():
     button1 = Button(ENCODER1_PIN_BTN,pull_up=True, bounce_time=0.02)
     button2 = Button(ENCODER2_PIN_BTN,pull_up=True, bounce_time=0.02)
+    
+    #new buttons
+    button_up = Button(KEY_UP_PIN,pull_up=True, bounce_time=0.02)
+    button_down = Button(KEY_DOWN_PIN,pull_up=True, bounce_time=0.02)
+    button_right = Button(KEY_RIGHT_PIN,pull_up=True, bounce_time=0.02)
+    button_left = Button(KEY_LEFT_PIN,pull_up=True, bounce_time=0.02)
+    button_middle = Button(KEY_PRESS_PIN,pull_up=True, bounce_time=0.02)
+    button_disp1 = Button(KEY1_PIN,pull_up=True, bounce_time=0.02)
+    button_disp2 = Button(KEY2_PIN,pull_up=True, bounce_time=0.02)
+    button_disp3 = Button(KEY3_PIN,pull_up=True, bounce_time=0.02)
+
 
     button1.when_pressed = on_press1  # Trigger on press
     button1.when_released = on_release1  # Trigger on release
     button2.when_pressed = on_press2  # Trigger on press
     button2.when_released = on_release2  # Trigger on release
+
+    button_up.when_pressed = on_press_up
+    button_up.when_released = on_release_up
+
+    button_down.when_pressed = on_press_down
+    button_down.when_released = on_release_down
+
+    button_right.when_pressed = on_press_right
+    button_right.when_released = on_release_right
+
+    button_left.when_pressed = on_press_left
+    button_left.when_released = on_release_left
+
+    button_middle.when_pressed = on_press_middle
+    button_middle.when_released = on_release_middle
+
+    button_disp1.when_pressed = on_press_disp1
+    button_disp1.when_released = on_release_disp1
+
+    button_disp2.when_pressed = on_press_disp2
+    button_disp2.when_released = on_release_disp2
+
+    button_disp3.when_pressed = on_press_disp3
+    button_disp3.when_released = on_release_disp3
+
     print("button is setup")
     while True:
         time.sleep(2)
@@ -171,7 +266,7 @@ def setupDisplay():
     ]
 
     # 2) Create a TileManager
-    manager = TileManager(tiles)
+    manager = UIManager(tiles)
     # 3) Render page 0 with layout "4" (4 tiles per page)
     manager.render(page_number=0, layout="4")
     frameUpdater = UpdaterThread(manager, times=0, interval=0.1) #10fps

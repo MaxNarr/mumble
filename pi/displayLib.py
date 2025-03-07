@@ -31,8 +31,8 @@ disp.clear()
 # 2) Optionally Set Backlight Brightness to 50%
 disp.bl_DutyCycle(100)
 # 3) Query Display Width & Height
-DISPLAY_WIDTH = disp.width-5
-DISPLAY_HEIGHT = disp.height-5
+DISPLAY_WIDTH = disp.width
+DISPLAY_HEIGHT = disp.height
 
 
 MINVOLUME = -2

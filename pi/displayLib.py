@@ -29,7 +29,7 @@ disp = ST7789.ST7789()    # Pass any constructor args you need (width, height, e
 disp.Init()
 disp.clear()
 # 2) Optionally Set Backlight Brightness to 50%
-disp.bl_DutyCycle(50)
+disp.bl_DutyCycle(100)
 # 3) Query Display Width & Height
 DISPLAY_WIDTH = disp.width
 DISPLAY_HEIGHT = disp.height

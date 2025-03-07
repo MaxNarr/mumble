@@ -54,7 +54,7 @@ doublePressFlag2 = False
 
 def on_press1():
     print("Button1 pressed!")
-    manager.getTile().is_calledByUser=CALLPHRASE
+    manager.get_current_talk_group_tiles()[0].is_calledByUser=CALLPHRASE
     global last_press_time1
     current_time = time.time()
     diff = current_time - last_press_time1
@@ -63,7 +63,7 @@ def on_press1():
     last_press_time1 = current_time
 
 def on_release1():
-    manager.getTile().is_calledByUser=None
+    manager.get_current_talk_group_tiles()[0].is_calledByUser=None
 
 def on_press2():
     global last_press_time2, doublePressFlag2
@@ -76,7 +76,7 @@ def on_press2():
         return
 
     last_press_time2 = current_time
-    mumbleRPC.talk(manager.getTile(),on=True)
+    mumbleRPC.talk(manager.get_current_talk_group_tiles()[0],on=True)
 
 def on_release2():
     global manager,doublePressFlag2
@@ -84,7 +84,7 @@ def on_release2():
 
     if not doublePressFlag2:
         print("stop talking2")
-        mumbleRPC.talk(manager.getTile(),on=False)
+        mumbleRPC.talk(manager.get_current_talk_group_tiles()[0],on=False)
         print("stop talking3")
 #             # 
 #             # 
@@ -131,9 +131,15 @@ def on_release_disp1():
 	pass
 
 def on_press_disp2():
-	pass
+	ui_manager.on_push_button_2()
 
 def on_release_disp2():
+    pass
+
+def on_press_disp3():
+	ui_manager.on_push_button_3()
+
+def on_release_disp3():
     pass
 
 def main():
@@ -225,13 +231,13 @@ def monitor_encoder1():
 
 def monitor_encoder2(manager):
     encoder = RotaryEncoder(ENCODER2_PIN_CS, ENCODER2_PIN_DS, wrap=False,bounce_time=0.01,max_steps=3)  
-    print(manager.getTile())
+    print(manager.get_current_talk_group_tiles()[0])
     old_value = encoder.value
     while True:
         new_value = max(MINVOLUME-1, min(math.floor(encoder.value*3), MAXVOLUME))  # the smallest step is 0.33 --> *3 = 1
         if new_value != old_value:
             print("newval: "+str(new_value))
-            manager.getTile().set_volume(new_value)
+            manager.get_current_talk_group_tiles()[0].set_volume(new_value)
  
             old_value = new_value
         time.sleep(0.05)  # or 0.005 or whatever

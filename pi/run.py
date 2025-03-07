@@ -104,8 +104,8 @@ def setupControlls():
     #    time.sleep(0.5)
 
 def wait_for_buttons():
-    button2 = Button(ENCODER1_PIN_BTN,pull_up=True, bounce_time=0.02)
-    button1 = Button(ENCODER2_PIN_BTN,pull_up=True, bounce_time=0.02)
+    button1 = Button(ENCODER1_PIN_BTN,pull_up=True, bounce_time=0.02)
+    button2 = Button(ENCODER2_PIN_BTN,pull_up=True, bounce_time=0.02)
 
     button1.when_pressed = on_press1  # Trigger on press
     button1.when_released = on_release1  # Trigger on release

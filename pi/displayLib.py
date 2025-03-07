@@ -25,7 +25,7 @@ CALLPHRASE= "calling"
 
 disp = st7789.ST7789(
     port=0,          # SPI port (often 0 on Raspberry Pi)
-    cs=1,            # Chip-select (use 0 or 1 based on your wiring)
+    cs=0,            # Chip-select (use 0 or 1 based on your wiring)
     dc=25,           # Data/Command pin
     backlight=24,    # Backlight pin
     rst=27,          # Reset pin

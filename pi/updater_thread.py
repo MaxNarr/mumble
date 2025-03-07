@@ -71,7 +71,7 @@ class UpdaterThread:
             return
 
         # Perform the update
-        self.manager.update()
+        self.manager.render()
         self.count += 1
 
         # Schedule the next update

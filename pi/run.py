@@ -22,6 +22,14 @@ MINVOLUME = -2
 MAXVOLUME = 2
 CALLPHRASE= "calling"
 
+#als GPIO Pinnummer
+ENCODER1_PIN_CS = 14
+ENCODER1_PIN_DS = 15
+ENCODER1_PIN_BTN = 18
+ENCODER2_PIN_CS = 2
+ENCODER2_PIN_DS = 3
+ENCODER2_PIN_BTN = 4
+
 capture_ports = None
 playback_ports = None
 jackstarted = False
@@ -96,8 +104,8 @@ def setupControlls():
     #    time.sleep(0.5)
 
 def wait_for_buttons():
-    button2 = Button(19,pull_up=True, bounce_time=0.02)
-    button1 = Button(21,pull_up=True, bounce_time=0.02)
+    button2 = Button(ENCODER1_PIN_BTN,pull_up=True, bounce_time=0.02)
+    button1 = Button(ENCODER2_PIN_BTN,pull_up=True, bounce_time=0.02)
 
     button1.when_pressed = on_press1  # Trigger on press
     button1.when_released = on_release1  # Trigger on release
@@ -108,7 +116,7 @@ def wait_for_buttons():
         time.sleep(2)
 
 def monitor_encoder1():
-    encoder = RotaryEncoder(26,20, wrap=True,bounce_time=0.01,max_steps=0)  
+    encoder = RotaryEncoder(ENCODER1_PIN_CS,ENCODER1_PIN_DS, wrap=True,bounce_time=0.01,max_steps=0)  
     old_value = encoder.steps
     while True:
         new_value = encoder.steps
@@ -121,7 +129,7 @@ def monitor_encoder1():
         time.sleep(0.05)  # or 0.005 or whatever
 
 def monitor_encoder2(manager):
-    encoder = RotaryEncoder(18, 17, wrap=False,bounce_time=0.01,max_steps=3)  
+    encoder = RotaryEncoder(ENCODER2_PIN_CS, ENCODER2_PIN_DS, wrap=False,bounce_time=0.01,max_steps=3)  
     print(manager.getTile())
     old_value = encoder.value
     while True:

@@ -3573,12 +3573,12 @@ void MainWindow::serverDisconnected(QAbstractSocket::SocketError err, QString re
 			qmb.setDefaultButton(QMessageBox::No);
 			qmb.setEscapeButton(QMessageBox::No);
 
-			QPushButton *qp = qmb.addButton(tr("&View Certificate"), QMessageBox::ActionRole);
 			
 			//Bypass the question. just auto accept.
 			Global::get().db->setDigest(host, port,QString::fromLatin1(c.digest(QCryptographicHash::Sha1).toHex()));
 			qaServerDisconnect->setEnabled(true);
 			on_Reconnect_timeout();
+			//QPushButton *qp = qmb.addButton(tr("&View Certificate"), QMessageBox::ActionRole);
 
 			// forever {
 			// 	int res = qmb.exec();

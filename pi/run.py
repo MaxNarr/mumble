@@ -50,9 +50,10 @@ last_press_time1 = 0
 last_press_time2 = 0
 double_press_threshold = 0.7  # Maximum time (seconds) between presses
 doublePressFlag2 = False
+doublePressFlag1 = False
 
 
-def on_press1():
+def on_pressCall1():
     print("Button1 pressed!")
     manager.get_current_talk_group_tiles()[0].is_calledByUser=CALLPHRASE
     global last_press_time1
@@ -62,8 +63,6 @@ def on_press1():
         print("Double press detected!"+ str(current_time - last_press_time1))
     last_press_time1 = current_time
 
-def on_release1():
-    manager.get_current_talk_group_tiles()[0].is_calledByUser=None
 
 def on_press2():
     global last_press_time2, doublePressFlag2
@@ -76,22 +75,32 @@ def on_press2():
         return
 
     last_press_time2 = current_time
-    mumbleRPC.talk(manager.get_current_talk_group_tiles()[0],on=True)
+    mumbleRPC.talk(manager.get_current_talk_group_tiles()[1],on=True)
 
 def on_release2():
     global manager,doublePressFlag2
-    print("stop talking1")
-
     if not doublePressFlag2:
-        print("stop talking2")
+        mumbleRPC.talk(manager.get_current_talk_group_tiles()[1],on=False)
+
+
+def on_press1():
+    global last_press_time1, doublePressFlag1
+    current_time = time.time()
+    diff = current_time - last_press_time1
+    if diff <= double_press_threshold :
+        doublePressFlag1 = True
+    elif doublePressFlag1:        
+        doublePressFlag1 = False
+        return
+
+    last_press_time1 = current_time
+    mumbleRPC.talk(manager.get_current_talk_group_tiles()[0],on=True)
+
+def on_release1():
+    global manager,doublePressFlag1
+    if not doublePressFlag1:
         mumbleRPC.talk(manager.get_current_talk_group_tiles()[0],on=False)
-        print("stop talking3")
-#             # 
-#             # 
-#             # 
-#             # 
-#             # 
-#             # , etc.
+
 
 # Event functions for new buttons
 def on_press_up():

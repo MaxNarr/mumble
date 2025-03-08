@@ -227,19 +227,16 @@ def wait_for_buttons():
 
 def monitor_encoder1():
     encoder = RotaryEncoder(ENCODER1_PIN_CS,ENCODER1_PIN_DS, wrap=True,bounce_time=0.01,max_steps=0)  
-    old_value = encoder.steps
-    while True:
-        new_value = encoder.steps
-        if new_value != old_value:
-            if new_value > old_value:
-                manager.nextTile(1,True)
-            else:
-                manager.nextTile(-1,True)
-            old_value = new_value
-        time.sleep(0.05)  # or 0.005 or whatever
-
-def monitor_encoder2(manager):
-    encoder = RotaryEncoder(ENCODER2_PIN_CS, ENCODER2_PIN_DS, wrap=False,bounce_time=0.01,max_steps=3)  
+    # old_value = encoder.steps
+    # while True:
+    #     new_value = encoder.steps
+    #     if new_value != old_value:
+    #         if new_value > old_value:
+    #             manager.nextTile(1,True)
+    #         else:
+    #             manager.nextTile(-1,True)
+    #         old_value = new_value
+    #     time.sleep(0.05)  # or 0.005 or whatever
     print(manager.get_current_talk_group_tiles()[0])
     old_value = encoder.value
     while True:
@@ -247,6 +244,20 @@ def monitor_encoder2(manager):
         if new_value != old_value:
             print("newval: "+str(new_value))
             manager.get_current_talk_group_tiles()[0].set_volume(new_value)
+ 
+            old_value = new_value
+        time.sleep(0.05)  # or 0.005 or whatever
+
+
+def monitor_encoder2(manager):
+    encoder = RotaryEncoder(ENCODER2_PIN_CS, ENCODER2_PIN_DS, wrap=False,bounce_time=0.01,max_steps=3)  
+    print(manager.get_current_talk_group_tiles()[1])
+    old_value = encoder.value
+    while True:
+        new_value = max(MINVOLUME-1, min(math.floor(encoder.value*3), MAXVOLUME))  # the smallest step is 0.33 --> *3 = 1
+        if new_value != old_value:
+            print("newval: "+str(new_value))
+            manager.get_current_talk_group_tiles()[1].set_volume(new_value)
  
             old_value = new_value
         time.sleep(0.05)  # or 0.005 or whatever

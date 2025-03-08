@@ -82,6 +82,12 @@ def current_blink_state() -> bool:
     now = time.time()
     cycle = math.floor(now / BLINK_INTERVAL)
     return (cycle % 2) == 0
+def draw_centered_text(draw_obj, x, y, w, h, text, font, color=(255,255,255)):
+    """Draw text centered in the rectangle (x, y, w, h)."""
+    text_w, text_h = get_text_dimensions(text, font)
+    text_x = x + (w - text_w) // 2
+    text_y = y + (h - text_h) // 2
+    draw_obj.text((text_x, text_y), text, font=font, fill=color)
 
 def draw_centered_multiline(draw_obj, x, y, w, h, lines, fonts, color=(255,255,255), spacing=5):
     """

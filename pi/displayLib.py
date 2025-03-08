@@ -295,6 +295,8 @@ class UIState(Enum):
     GENERAL_SETTINGS = 3
     EDIT_DISPLAY_NAME = 4
     EDIT_IP = 5
+    LAYOUT_SETTINGS = 6
+
 
 
 #
@@ -349,11 +351,17 @@ class UIManager:
             self.pages = [ [EmptyTile() for _ in range(self.num_slots_per_page())] ]
 
         self.init_general_settings_view()
+        self.init_layout_settings_view()
 
     def init_general_settings_view(self):
-        items = ["Display Name", "IP Settings"]
+        items = ["Display Name", "IP Settings","Layout"]
         # You could also add a "Layout" item if you want
         self.general_settings_view = ScrollableListView(items, title="General Settings")
+    
+    def init_layout_settings_view(self):
+        # We'll list each layout as a name
+        items = ["2x3", "2x2", "2x1", "Back"]
+        self.layout_settings_view = ScrollableListView(items, title="Choose Layout")
 
     #
     # ──────────────────────────── LOAD/SAVE CONFIG ────────────────────────────
@@ -511,6 +519,9 @@ class UIManager:
     def render_general_settings_view(self):
         self.general_settings_view.render()
 
+    def render_layout_settings_view(self):
+        self.layout_settings_view.render()
+
     def render_edit_display_name(self):
         img = Image.new("RGB", (DISPLAY_WIDTH, DISPLAY_HEIGHT), (0,0,0))
         draw = ImageDraw.Draw(img)
@@ -539,6 +550,43 @@ class UIManager:
             self.render_edit_display_name()
         elif self.state == UIState.EDIT_IP:
             self.render_edit_ip()
+        elif self.state == UIState.LAYOUT_SETTINGS:
+            self.render_layout_settings_view()
+
+ #
+    # ─────────────────────────── LAYOUT SETTINGS ─────────────────────────────
+    #
+
+    def select_in_layout_settings_view(self):
+        chosen = self.layout_settings_view.get_selected_item()
+        if chosen is None:
+            return
+        if chosen == "Back":
+            self.state = UIState.GENERAL_SETTINGS
+            return
+        elif chosen == "2x3":
+            self.set_layout(LayoutOption.TWO_BY_THREE)
+        elif chosen == "2x2":
+            self.set_layout(LayoutOption.TWO_BY_TWO)
+        elif chosen == "2x1":
+            self.set_layout(LayoutOption.TWO_BY_ONE)
+        # Then return to PAGE_VIEW for now or stay in general settings—your call:
+        self.state = UIState.GENERAL_SETTINGS
+
+    def set_layout(self, layout_option: LayoutOption):
+        """
+        1) If the new layout has fewer or more tiles per page, we need
+           to adapt the existing pages or start fresh. For simplicity,
+           we’ll create brand new pages with everything empty. 
+           A more advanced approach: re-map existing tiles to new pages.
+        """
+        self.layout = layout_option
+        self.pages = []
+        self.selected_page_index = 0
+        self.selected_tile_index = 0
+        self.pages.append([EmptyTile() for _ in range(self.num_slots_per_page())])
+
+    #
 
     #
     # ───────────────────── TILE SETTINGS LOGIC ──────────────────────────────
@@ -588,6 +636,10 @@ class UIManager:
             self.state = UIState.EDIT_DISPLAY_NAME
         elif chosen == "IP Settings":
             self.state = UIState.EDIT_IP
+        elif chosen == "Layout":
+            self.state = UIState.LAYOUT_SETTINGS
+        else:
+            pass
 
     #
     # ───────────────────── EVENT HANDLERS ──────────────────────────────────
@@ -660,7 +712,9 @@ class UIManager:
             self.select_in_tile_settings_view()
         elif self.state == UIState.GENERAL_SETTINGS:
             self.select_in_general_settings_view()
-
+        elif self.state == UIState.LAYOUT_SETTINGS:
+            self.select_in_layout_settings_view()
+       
     #
     # ───────────────────── TALK GROUP SELECTION ────────────────────────────
     #

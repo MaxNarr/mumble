@@ -392,7 +392,7 @@ class UIManager:
     
     def init_layout_settings_view(self):
         # We'll list each layout as a name
-        items = ["2x3", "2x2", "2x1", "Back"]
+        items = ["2x3", "2x2", "2x1", "clear all tiles","Back"]
         self.layout_settings_view = ScrollableListView(items, title="Choose Layout")
 
     #
@@ -597,26 +597,17 @@ class UIManager:
             self.state = UIState.GENERAL_SETTINGS
             return
         elif chosen == "2x3":
-            self.set_layout(LayoutOption.TWO_BY_THREE)
+            self.set_layout(LayoutOption.TWO_BY_THREE, False)
         elif chosen == "2x2":
-            self.set_layout(LayoutOption.TWO_BY_TWO)
+            self.set_layout(LayoutOption.TWO_BY_TWO, False)
         elif chosen == "2x1":
-            self.set_layout(LayoutOption.TWO_BY_ONE)
-        # Then return to PAGE_VIEW for now or stay in general settings—your call:
-        self.state = UIState.GENERAL_SETTINGS
+            self.set_layout(LayoutOption.TWO_BY_ONE, False)
+        elif chosen == "clear all tiles":
+            self.set_layout(self.layout, True)
 
-    def set_layout(self, layout_option: LayoutOption):
-        """
-        1) If the new layout has fewer or more tiles per page, we need
-           to adapt the existing pages or start fresh. For simplicity,
-           we’ll create brand new pages with everything empty. 
-           A more advanced approach: re-map existing tiles to new pages.
-        """
-        self.layout = layout_option
-        self.pages = []
-        self.selected_page_index = 0
-        self.selected_tile_index = 0
-        self.pages.append([EmptyTile() for _ in range(self.num_slots_per_page())])
+        # Then return to PAGE_VIEW for now or stay in general settings—your call:
+        self.state = UIState.PAGE_VIEW
+
     def set_layout(self, layout_option: LayoutOption, emptyPage:False):
         """
         Remap existing tiles into the new layout while preserving their order.

@@ -667,6 +667,9 @@ class UIManager:
             self.tile_settings_view.move_up()
         elif self.state == UIState.GENERAL_SETTINGS:
             self.general_settings_view.move_up()
+        elif self.state == UIState.LAYOUT_SETTINGS:
+            self.layout_settings_view.move_up()
+
 
     def on_joystick_down(self):
         if self.state == UIState.PAGE_VIEW:
@@ -679,6 +682,8 @@ class UIManager:
             self.tile_settings_view.move_down()
         elif self.state == UIState.GENERAL_SETTINGS:
             self.general_settings_view.move_down()
+        elif self.state == UIState.LAYOUT_SETTINGS:
+            self.layout_settings_view.move_down()
 
     def on_joystick_left(self):
         if self.state == UIState.PAGE_VIEW:

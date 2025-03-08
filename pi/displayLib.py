@@ -209,7 +209,7 @@ class Tile:
                 bg = colorGreen
                 fg = colorWhite
 
-        draw_obj.rectangle((x,y,x+w-10,y+h-10), fill=bg, outline=colorWhite)
+        draw_obj.rectangle((x,y,x+w,y+h), fill=bg, outline=colorWhite)
 
         # Build the lines to display: [tileName, volumeText]
         # Center them in the tile

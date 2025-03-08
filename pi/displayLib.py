@@ -515,7 +515,7 @@ class UIManager:
 
         # top bar
         top_bar_h = 24
-        draw.rectangle((0,0,DISPLAY_WIDTH,top_bar_h), fill=(255,255,255))
+        draw.rectangle((0,0,DISPLAY_WIDTH,top_bar_h), fill=(150,150,150))
         page_text = f"Page {self.selected_page_index+1}"
         # Show display name too?
         draw_centered_text(draw, 0,0, DISPLAY_WIDTH,top_bar_h, page_text, FONT, (0,0,0))
@@ -536,7 +536,7 @@ class UIManager:
             y = tile_area_y + row*tile_h
 
             tile.selected = (idx == self.selected_tile_index)
-            tile.draw(draw, x,y, tile_w, tile_h, self.tile_cursor_active)
+            tile.draw(draw, x,y, tile_w-2, tile_h-2, self.tile_cursor_active)
 
         # talk group row outline in green
         tg_y = tile_area_y + self.selected_talk_group_row*tile_h

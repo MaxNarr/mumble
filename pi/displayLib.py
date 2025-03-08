@@ -809,26 +809,44 @@ class UIManager:
             self.state = UIState.PAGE_VIEW
 
     def on_push_button_2(self):
-    # talk group up
+        # Talk group up
         if self.state == UIState.PAGE_VIEW:
             # If we're not on the page where the talk group is set,
-            # then update the talk group to the current page (and initialize row to 0)
+            # update the talk group to the current page and start at row 0.
             if self.selected_page_index != self.talk_group_page:
                 self.talk_group_page = self.selected_page_index
                 self.talk_group_row = 0
             else:
-                # On the same page: move up if possible.
+                # We are on the talk group page.
                 if self.talk_group_row > 0:
                     self.talk_group_row -= 1
+                else:
+                    # At the top row: if possible, move to the previous page.
+                    if self.talk_group_page > 0:
+                        self.talk_group_page -= 1
+                        self.talk_group_row = self.num_rows() - 1
+                        # Optionally update the displayed page:
+                        self.selected_page_index = self.talk_group_page
 
     def on_push_button_3(self):
-        # talk group down
+        # Talk group down
         if self.state == UIState.PAGE_VIEW:
+            # If we're not on the page where the talk group is set,
+            # update the talk group to the current page and start at row 0.
             if self.selected_page_index != self.talk_group_page:
                 self.talk_group_page = self.selected_page_index
                 self.talk_group_row = 0
             else:
+                # We are on the talk group page.
                 if self.talk_group_row < (self.num_rows() - 1):
                     self.talk_group_row += 1
-
+                else:
+                    # At the bottom row: move to the next page.
+                    self.talk_group_page += 1
+                    # Create a new page if needed:
+                    if self.talk_group_page >= len(self.pages):
+                        self.pages.append([EmptyTile() for _ in range(self.num_slots_per_page())])
+                    self.talk_group_row = 0
+                    # Optionally update the displayed page:
+                    self.selected_page_index = self.talk_group_page
     #

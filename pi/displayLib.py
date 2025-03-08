@@ -240,7 +240,7 @@ class Tile:
         # For volume text, just use VOLUME_FONT
         lines = [self.name, volume_str]
         fonts = [best_font, VOLUME_FONT]
-        draw_centered_multiline(draw_obj, x, y, w, h, lines, fonts, color=fg, spacing=5,bg_colors=[colorBlack, bg_volume],
+        draw_centered_multiline(draw_obj, x, y, w, h, lines, fonts, text_colors=[fg], spacing=5,bg_colors=[colorBlack, bg_volume],
                         bg_padding=3)
 
 
@@ -259,7 +259,7 @@ class EmptyTile(Tile):
         draw_obj.rectangle((x,y,x+w,y+h), fill=bg, outline=(255,255,255))
         draw_centered_multiline(
             draw_obj, x, y, w, h, ["+"], [FONT],
-            color=[fg], spacing=0
+            text_colors=[fg], spacing=0
         )
 
 

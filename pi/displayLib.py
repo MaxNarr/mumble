@@ -35,9 +35,9 @@ BLINK_DURATION = 5
 BLINK_INTERVAL = 0.5
 
 BASE_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-FONT = ImageFont.truetype(BASE_FONT_PATH, 14)
-VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 10)
-MIN_NAME_FONT_SIZE = 11
+FONT = ImageFont.truetype(BASE_FONT_PATH, 15)
+VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 12)
+MIN_NAME_FONT_SIZE = 12
 MAX_NAME_FONT_SIZE = 30
 
 CURSOR_TIMEOUT = 3.0  # seconds of joystick inactivity to hide cursor
@@ -89,32 +89,55 @@ def draw_centered_text(draw_obj, x, y, w, h, text, font, color=(255,255,255)):
     text_y = y + (h - text_h) // 2
     draw_obj.text((text_x, text_y), text, font=font, fill=color)
 
-def draw_centered_multiline(draw_obj, x, y, w, h, lines, fonts, color=(255,255,255), spacing=5):
+def draw_centered_multiline(draw_obj, x, y, w, h, lines, fonts,
+                            text_colors=None, spacing=5,
+                            bg_colors=None, bg_padding=2):
     """
     Draw multiple lines (each with a given font) centered horizontally & vertically.
-    lines: [ "TileName", "Volume" ] for example
-    fonts: [ nameFont, volumeFont ]
-    We'll compute total height, then center as a block in the tile.
+    Optionally, draw a colored rectangle behind each line.
+    
+    Parameters:
+      draw_obj: The PIL ImageDraw object.
+      x, y, w, h: The bounding rectangle for the text block.
+      lines: List of text strings to draw.
+      fonts: List of PIL ImageFont objects for each line.
+      text_colors: List of colors for the text (one per line), e.g., [(255,255,255), (0,0,0)].
+                   If None, defaults to white for all lines.
+      spacing: Extra vertical spacing between lines.
+      bg_colors: List of background colors for each line. If an entry is None, no background is drawn.
+                 If None as a whole, no backgrounds are drawn.
+      bg_padding: Padding (in pixels) around each text line for the background rectangle.
     """
+    # Ensure default text colors if not provided
+    if text_colors is None:
+        text_colors = [(255, 255, 255)] * len(lines)
+    # If bg_colors is provided, ensure its length matches lines
+    if bg_colors is not None and len(bg_colors) != len(lines):
+        raise ValueError("Length of bg_colors must match the number of lines")
+    
     total_height = 0
     line_sizes = []
     for line, fnt in zip(lines, fonts):
         tw, th = get_text_dimensions(line, fnt)
         line_sizes.append((tw, th))
         total_height += th
-    # add spacing between lines
     total_height += spacing * (len(lines) - 1)
 
-    # y offset for the block
+    # y offset for the block so it is centered vertically
     start_y = y + (h - total_height) // 2
 
     cur_y = start_y
-    for (line, fnt), (tw, th) in zip(zip(lines, fonts), line_sizes):
+    # Iterate over lines with their corresponding fonts and colors.
+    for i, ((line, fnt), (tw, th)) in enumerate(zip(zip(lines, fonts), line_sizes)):
         text_x = x + (w - tw) // 2
         text_y = cur_y
-        draw_obj.text((text_x, text_y), line, font=fnt, fill=color)
+        # If background colors are provided and not None, draw a rectangle behind the text.
+        if bg_colors is not None and bg_colors[i] is not None:
+            draw_obj.rectangle((text_x - bg_padding, text_y - bg_padding,
+                                text_x + tw + bg_padding, text_y + th + bg_padding),
+                               fill=bg_colors[i])
+        draw_obj.text((text_x, text_y), line, font=fnt, fill=text_colors[i])
         cur_y += th + spacing
-
 
 #
 # ┌─────────────────────────────────────────────────────────────┐
@@ -152,15 +175,20 @@ class Tile:
         If tile_cursor_active is False, we ignore 'selected'.
         We'll center the name text + volume text in the tile (vertically & horizontally).
         """
-        bg = (0,0,0)
+      
+        colorBlack = (0,0,0)
+        colorWhite = (255,255,255)
+        colorRed = (255,0,0)
+        colorGreen = (0,255,0)
+        bg = colorBlack
         fg = (255,255,255)
 
         # If the tile is "selected" but the cursor is hidden => treat as unselected.
         is_sel = (self.selected and tile_cursor_active)
 
         if is_sel:
-            bg = (255,255,255)
-            fg = (0,0,0)
+            bg = colorWhite
+            fg = colorBlack
         else:
             # Possibly blink red if is_calledByUser
             if self.is_calledByUser:
@@ -168,24 +196,26 @@ class Tile:
                     self.blink_start = time.time()
                 if (time.time() - self.blink_start) < BLINK_DURATION:
                     if current_blink_state():
-                        bg = (255,0,0)
+                        bg = colorRed
                     else:
-                        bg = (0,0,0)
+                        bg = colorBlack
                 else:
                     self.is_calledByUser = None
                     self.blink_start = None
-                    bg = (0,0,0)
-                fg = (255,255,255)
+                    bg = colorBlack
+                fg = colorWhite
             elif self.talking:
-                bg = (0,128,0)
-                fg = (255,255,255)
+                bg = colorGreen
+                fg = colorWhite
 
-        draw_obj.rectangle((x,y,x+w,y+h), fill=bg, outline=(255,255,255))
+        draw_obj.rectangle((x,y,x+w,y+h), fill=bg, outline=colorWhite)
 
         # Build the lines to display: [tileName, volumeText]
         # Center them in the tile
+        bg_volume = colorBlack
         if self.volume == MINVOLUME-1:
             volume_str = "muted"
+            bg_volume = colorRed
         elif self.volume == 0:
             volume_str = "Std."
         elif self.volume > 0:
@@ -209,7 +239,8 @@ class Tile:
         # For volume text, just use VOLUME_FONT
         lines = [self.name, volume_str]
         fonts = [best_font, VOLUME_FONT]
-        draw_centered_multiline(draw_obj, x, y, w, h, lines, fonts, color=fg, spacing=5)
+        draw_centered_multiline(draw_obj, x, y, w, h, lines, fonts, color=fg, spacing=5,bg_colors=[colorBlack, bg_volume],
+                        bg_padding=3)
 
 
 class EmptyTile(Tile):

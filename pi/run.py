@@ -387,9 +387,9 @@ def user_input_loop():
             case "ListenStop":
                 output = mumbleRPC(1,-40)
             case "Start":
-                output = mumbleRPC.start_mumble
+                output = mumbleRPC.start_mumble()
             case "getchannelinfo":
-                output = mumbleRPC.get_channel_info
+                output = mumbleRPC.get_channel_info()
             case _:
                 output = "Invalid command"
 

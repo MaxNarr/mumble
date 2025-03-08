@@ -259,7 +259,7 @@ class EmptyTile(Tile):
         draw_obj.rectangle((x,y,x+w,y+h), fill=bg, outline=(255,255,255))
         draw_centered_multiline(
             draw_obj, x, y, w, h, ["+"], [FONT],
-            color=fg, spacing=0
+            color=[fg], spacing=0
         )
 
 

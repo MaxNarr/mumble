@@ -617,7 +617,46 @@ class UIManager:
         self.selected_page_index = 0
         self.selected_tile_index = 0
         self.pages.append([EmptyTile() for _ in range(self.num_slots_per_page())])
+    def set_layout(self, layout_option: LayoutOption, emptyPage:False):
+        """
+        Remap existing tiles into the new layout while preserving their order.
+        Instead of starting fresh with empty pages, we:
+        1. Gather all tiles from all current pages (in order).
+        2. Create new pages using the new slot count.
+        3. If the last page is incomplete, fill the remainder with EmptyTile.
+        """
+        self.layout = layout_option
+        if emptyPage:
+            self.pages = []
+            self.selected_page_index = 0
+            self.selected_tile_index = 0
+            self.pages.append([EmptyTile() for _ in range(self.num_slots_per_page())])
+            return
+    
+        new_slots = self.num_slots_per_page()
 
+        # Gather all existing tiles (in reading order)
+        all_tiles_ordered = []
+        for page in self.pages:
+            for tile in page:
+                all_tiles_ordered.append(tile)
+
+        # Create new pages based on new_slots
+        new_pages = []
+        for i in range(0, len(all_tiles_ordered), new_slots):
+            page_tiles = all_tiles_ordered[i:i+new_slots]
+            # Fill the last page if needed
+            if len(page_tiles) < new_slots:
+                page_tiles.extend([EmptyTile() for _ in range(new_slots - len(page_tiles))])
+            new_pages.append(page_tiles)
+
+        # If there were no tiles at all, create one empty page
+        if not new_pages:
+            new_pages.append([EmptyTile() for _ in range(new_slots)])
+
+        self.pages = new_pages
+        self.selected_page_index = 0
+        self.selected_tile_index = 0
     #
 
     #

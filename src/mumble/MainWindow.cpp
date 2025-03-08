@@ -3561,6 +3561,7 @@ void MainWindow::serverDisconnected(QAbstractSocket::SocketError err, QString re
 			foreach (QSslError e, Global::get().sh->qlErrors)
 				qsl << QString::fromLatin1("<li>%1</li>").arg(e.errorString().toHtmlEscaped());
 
+			/*
 			QMessageBox qmb(QMessageBox::Warning, QLatin1String("Mumble"),
 							tr("<p>%1</p><ul>%2</ul><p>The specific errors with this certificate are:</p><ol>%3</ol>"
 							   "<p>Do you wish to accept this certificate anyway?<br />(It will also be stored so you "
@@ -3572,7 +3573,7 @@ void MainWindow::serverDisconnected(QAbstractSocket::SocketError err, QString re
 
 			qmb.setDefaultButton(QMessageBox::No);
 			qmb.setEscapeButton(QMessageBox::No);
-
+			*/
 			
 			//Bypass the question. just auto accept.
 			Global::get().db->setDigest(host, port,QString::fromLatin1(c.digest(QCryptographicHash::Sha1).toHex()));

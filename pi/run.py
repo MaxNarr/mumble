@@ -169,7 +169,7 @@ def setupControlls():
     # Start a background thread to watch each encoder
     
     buttonThread = Thread(target=wait_for_buttons, daemon=True)
-    encoderThread1 = Thread(target=monitor_encoder1, daemon=True)
+    encoderThread1 = Thread(target=monitor_encoder1,args=(manager,), daemon=True)
     encoderThread2 = Thread(target=monitor_encoder2, args=(manager,) ,daemon=True)
     encoderThread1.start()
     encoderThread2.start()
@@ -225,7 +225,7 @@ def wait_for_buttons():
     while True:
         time.sleep(2)
 
-def monitor_encoder1():
+def monitor_encoder1(manager):
     encoder = RotaryEncoder(ENCODER1_PIN_CS,ENCODER1_PIN_DS, wrap=True,bounce_time=0.01,max_steps=0)  
     # old_value = encoder.steps
     # while True:

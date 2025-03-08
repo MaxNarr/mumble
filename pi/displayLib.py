@@ -294,8 +294,10 @@ class ScrollableListView:
         draw = ImageDraw.Draw(img)
         title_height = 25
         # title bar
-        draw.rectangle((0,0,DISPLAY_WIDTH,title_height), fill=(255,255,255))
-        draw_centered_text(draw, 0,0, DISPLAY_WIDTH,title_height, self.title, FONT, (0,0,0))
+        titlebarColor=(150,150,150)
+        titlebar_textColor = (255,255,255)
+        draw.rectangle((0,0,DISPLAY_WIDTH,title_height), fill=titlebarColor)
+        draw_centered_text(draw, 0,0, DISPLAY_WIDTH,title_height, self.title, FONT, titlebar_textColor)
 
         y_start = title_height
         max_vis = (DISPLAY_HEIGHT - title_height) // self.item_height
@@ -360,8 +362,9 @@ class UIManager:
         self.tile_cursor_active = True
         self.last_input_time = time.time()
 
-        # Talk group row
-        self.selected_talk_group_row = 0
+          # Global talk group variables (absolute across pages)
+        self.talk_group_page = 0
+        self.talk_group_row = 0
 
         # UI state
         self.state = UIState.PAGE_VIEW
@@ -517,8 +520,7 @@ class UIManager:
         top_bar_h = 24
         draw.rectangle((0,0,DISPLAY_WIDTH,top_bar_h), fill=(150,150,150))
         page_text = f"Page {self.selected_page_index+1}"
-        # Show display name too?
-        draw_centered_text(draw, 0,0, DISPLAY_WIDTH,top_bar_h, page_text, FONT, (255,255,255))
+        draw_centered_text(draw, 0, 0, DISPLAY_WIDTH, top_bar_h, page_text, FONT, (255,255,255))
 
         tile_area_y = top_bar_h
         tile_area_h = DISPLAY_HEIGHT - top_bar_h
@@ -527,21 +529,21 @@ class UIManager:
         tile_h = tile_area_h // self.num_rows()
 
         page = self.pages[self.selected_page_index]
-
-        # draw tiles
         for idx, tile in enumerate(page):
             row = idx // self.num_cols()
             col = idx % self.num_cols()
-            x = col*tile_w
-            y = tile_area_y + row*tile_h
+            x = col * tile_w
+            y = tile_area_y + row * tile_h
 
             tile.selected = (idx == self.selected_tile_index)
-            tile.draw(draw, x,y, tile_w-2, tile_h-2, self.tile_cursor_active)
+            tile.draw(draw, x, y, tile_w-2, tile_h-2, self.tile_cursor_active)
 
-        # talk group row outline in green
-        tg_y = tile_area_y + self.selected_talk_group_row*tile_h
-        draw.rectangle((0, tg_y, DISPLAY_WIDTH, tg_y + tile_h),
-                       outline=(0,255,0), width=2)
+        # Only draw the talk group highlight if we're on the page where it is set.
+        if self.selected_page_index == self.talk_group_page:
+            tg_row = self.talk_group_row
+            tg_y = tile_area_y + tg_row * tile_h
+            draw.rectangle((0, tg_y, DISPLAY_WIDTH, tg_y + tile_h),
+                        outline=(0,255,0), width=2)
 
         disp.ShowImage(img)
 
@@ -789,12 +791,13 @@ class UIManager:
 
     def get_current_talk_group_tiles(self):
         """
-        Return the 2 tiles in the row = self.selected_talk_group_row
-        for a 2-column layout. If layout is not 2-column, adapt as needed.
+        Return the 2 tiles in the row (for a 2-column layout) that belong to
+        the global talk group. This uses the talk group page (self.talk_group_page)
+        and talk group row (self.talk_group_row), not the currently displayed page.
         """
-        row = self.selected_talk_group_row
+        row = self.talk_group_row
+        page = self.pages[self.talk_group_page]
         start_idx = row * self.num_cols()
-        page = self.pages[self.selected_page_index]
         end_idx = start_idx + self.num_cols()
         return page[start_idx:end_idx]
 
@@ -806,28 +809,26 @@ class UIManager:
             self.state = UIState.PAGE_VIEW
 
     def on_push_button_2(self):
-        # talk group up
+    # talk group up
         if self.state == UIState.PAGE_VIEW:
-            row = self.selected_talk_group_row
-            if row > 0:
-                self.selected_talk_group_row -= 1
+            # If we're not on the page where the talk group is set,
+            # then update the talk group to the current page (and initialize row to 0)
+            if self.selected_page_index != self.talk_group_page:
+                self.talk_group_page = self.selected_page_index
+                self.talk_group_row = 0
             else:
-                # go to previous page if possible
-                if self.selected_page_index > 0:
-                    self.selected_page_index -= 1
-                    self.selected_talk_group_row = self.num_rows()-1
+                # On the same page: move up if possible.
+                if self.talk_group_row > 0:
+                    self.talk_group_row -= 1
 
     def on_push_button_3(self):
         # talk group down
         if self.state == UIState.PAGE_VIEW:
-            row = self.selected_talk_group_row
-            if row < self.num_rows()-1:
-                self.selected_talk_group_row += 1
+            if self.selected_page_index != self.talk_group_page:
+                self.talk_group_page = self.selected_page_index
+                self.talk_group_row = 0
             else:
-                # next page
-                self.selected_page_index += 1
-                if self.selected_page_index >= len(self.pages):
-                    self.pages.append([EmptyTile() for _ in range(self.num_slots_per_page())])
-                self.selected_talk_group_row = 0
+                if self.talk_group_row < (self.num_rows() - 1):
+                    self.talk_group_row += 1
 
-#
+    #

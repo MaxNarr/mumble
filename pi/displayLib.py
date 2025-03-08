@@ -24,6 +24,10 @@ disp = ST7789.ST7789()
 disp.Init()
 disp.clear()
 disp.bl_DutyCycle(100)
+
+
+DISPLAY_WIDTH = disp.width
+DISPLAY_HEIGHT = disp.height
 # Constants
 MINVOLUME = -2
 MAXVOLUME = 2

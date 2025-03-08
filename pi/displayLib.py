@@ -36,6 +36,7 @@ BLINK_INTERVAL = 0.5
 
 BASE_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 FONT = ImageFont.truetype(BASE_FONT_PATH, 15)
+FONTPLUS =  ImageFont.truetype(BASE_FONT_PATH, 25)
 VOLUME_FONT = ImageFont.truetype(BASE_FONT_PATH, 12)
 MIN_NAME_FONT_SIZE = 12
 MAX_NAME_FONT_SIZE = 30

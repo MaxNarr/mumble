@@ -12,14 +12,15 @@ def start_jackd(interface=None, sample_rate=48000, buffer_size=128, periods=3):
     :param periods: Number of periods per buffer.
     """
 
-    if interface== None:
+    if interface is None:
         devices = list_usb_devices()
-        card, name, desc = None
         if devices:
             card, name, desc = devices[0]
-        interface = "hw:"+ card
+            interface = "hw:" + str(card)
+        else:
+            interface = "hw:0"  # default if no USB device found
     
-    jack_command = f"jackd -d alsa -d {interface} -r {sample_rate} -p {buffer_size} -n {periods}"
+    jack_command = f"jackd -R -d alsa -d {interface} -r {sample_rate} -p {buffer_size} -n {periods}"
     
     try:
         print("Starting JACK server...")

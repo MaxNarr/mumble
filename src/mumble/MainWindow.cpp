@@ -199,6 +199,7 @@ MainWindow::MainWindow(QWidget *p)
 	QObject::connect(this, &MainWindow::serverSynchronized, this, &MainWindow::userStateChanged);
 
 	QAccessible::installFactory(AccessibleSlider::semanticSliderFactory);
+	
 }
 
 // Loading a state that was stored by a different version of Qt can lead to a crash.
@@ -525,6 +526,10 @@ void MainWindow::setupGui() {
 	connect(qtvUsers->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
 			SLOT(qtvUserCurrentChanged(const QModelIndex &, const QModelIndex &)));
 
+	connect(qtvUsers, &QWidget::customContextMenuRequested, this, [this](const QPoint &mpos) {
+		bool usePositionForGettingContext = true; // or some dynamic decision
+		this->on_qtvUsers_customContextMenuRequested(mpos, usePositionForGettingContext);
+	});
 	// QtCreator and uic.exe do not allow adding arbitrary widgets
 	// such as a MUComboBox to a QToolbar, even though they are supported.
 	qcbTransmitMode = new MUComboBox(qtIconToolbar);
@@ -975,6 +980,7 @@ void MainWindow::on_qtvUsers_customContextMenuRequested(const QPoint &mpos, bool
 	}
 	qpContextPosition = QPoint();
 }
+
 
 void MainWindow::on_qteLog_customContextMenuRequested(const QPoint &mpos) {
 	QString link = qteLog->anchorAt(mpos);

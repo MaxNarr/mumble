@@ -1,7 +1,8 @@
 import subprocess
 import time
+import re
 
-def start_jackd(interface="hw:2", sample_rate=48000, buffer_size=128, periods=3):
+def start_jackd(interface=None, sample_rate=48000, buffer_size=128, periods=3):
     """
     Starts the JACK audio server with ALSA as the backend.
     
@@ -10,6 +11,14 @@ def start_jackd(interface="hw:2", sample_rate=48000, buffer_size=128, periods=3)
     :param buffer_size: Buffer size in frames.
     :param periods: Number of periods per buffer.
     """
+
+    if interface== None:
+        devices = list_usb_devices()
+        card, name, desc = None
+        if devices:
+            card, name, desc = devices[0]
+        interface = "hw:"+ card
+    
     jack_command = f"jackd -d alsa -d {interface} -r {sample_rate} -p {buffer_size} -n {periods}"
     
     try:
@@ -93,3 +102,35 @@ def disconnectSideToneJack():
 
     except Exception as e:
         print(f"Error setting up JACK connections: {e}")
+
+
+def list_usb_devices():
+    try:
+        result = subprocess.run(['aplay', '-l'], capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as e:
+        print("Error running 'aplay -l':", e)
+        return []
+
+    usb_devices = []
+    # Example line:
+    # "card 0: Device [USB Audio Device], device 0: USB Audio [USB Audio]"
+    for line in result.stdout.splitlines():
+        if "USB" in line:
+            # Extract card number and device information with a regex.
+            m = re.search(r'card (\d+):\s*([^\[]+)\[([^]]+)\]', line)
+            if m:
+                card_number = int(m.group(1))
+                name = m.group(2).strip()
+                description = m.group(3).strip()
+                usb_devices.append((card_number, name, description))
+    return usb_devices
+
+
+#def test():
+    # devices = list_usb_devices()
+    # if devices:
+    #     print("Found USB audio devices:")
+    #     for card, name, desc in devices:
+    #         print(f"Card {card}: {name} [{desc}]")
+    # else:
+    #     print("No USB audio devices found.")

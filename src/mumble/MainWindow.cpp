@@ -3574,21 +3574,27 @@ void MainWindow::serverDisconnected(QAbstractSocket::SocketError err, QString re
 			qmb.setEscapeButton(QMessageBox::No);
 
 			QPushButton *qp = qmb.addButton(tr("&View Certificate"), QMessageBox::ActionRole);
-			forever {
-				int res = qmb.exec();
+			
+			//Bypass the question. just auto accept.
+			Global::get().db->setDigest(host, port,QString::fromLatin1(c.digest(QCryptographicHash::Sha1).toHex()));
+			qaServerDisconnect->setEnabled(true);
+			on_Reconnect_timeout();
 
-				if ((res == 0) && (qmb.clickedButton() == qp)) {
-					ViewCert vc(Global::get().sh->qscCert, this);
-					vc.exec();
-					continue;
-				} else if (res == QMessageBox::Yes) {
-					Global::get().db->setDigest(host, port,
-												QString::fromLatin1(c.digest(QCryptographicHash::Sha1).toHex()));
-					qaServerDisconnect->setEnabled(true);
-					on_Reconnect_timeout();
-				}
-				break;
-			}
+			// forever {
+			// 	int res = qmb.exec();
+
+			// 	if ((res == 0) && (qmb.clickedButton() == qp)) {
+			// 		ViewCert vc(Global::get().sh->qscCert, this);
+			// 		vc.exec();
+			// 		continue;
+			// 	} else if (res == QMessageBox::Yes) {
+			// 		Global::get().db->setDigest(host, port,
+			// 									QString::fromLatin1(c.digest(QCryptographicHash::Sha1).toHex()));
+			// 		qaServerDisconnect->setEnabled(true);
+			// 		on_Reconnect_timeout();
+			// 	}
+			// 	break;
+			// }
 		}
 	} else if (err == QAbstractSocket::SslHandshakeFailedError) {
 		QMessageBox msgBox;

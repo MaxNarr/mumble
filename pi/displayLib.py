@@ -13,7 +13,17 @@ from DisplayST7789 import ST7789
 
 
 CONFIG_FILE = "config.json"
+CALLPHRASE = "calling"
 
+#
+#  ┌────────────────────────────────────────────────────────────────┐
+#  │                DISPLAY / HARDWARE INITIALIZATION              │
+#  └────────────────────────────────────────────────────────────────┘
+
+disp = ST7789.ST7789()
+disp.Init()
+disp.clear()
+disp.bl_DutyCycle(100)
 # Constants
 MINVOLUME = -2
 MAXVOLUME = 2

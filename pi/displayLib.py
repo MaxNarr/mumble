@@ -518,7 +518,7 @@ class UIManager:
         draw.rectangle((0,0,DISPLAY_WIDTH,top_bar_h), fill=(150,150,150))
         page_text = f"Page {self.selected_page_index+1}"
         # Show display name too?
-        draw_centered_text(draw, 0,0, DISPLAY_WIDTH,top_bar_h, page_text, FONT, (0,0,0))
+        draw_centered_text(draw, 0,0, DISPLAY_WIDTH,top_bar_h, page_text, FONT, (255,255,255))
 
         tile_area_y = top_bar_h
         tile_area_h = DISPLAY_HEIGHT - top_bar_h
@@ -649,6 +649,7 @@ class UIManager:
                 self.set_current_page_tile(tile_obj)
                 break
         self.state = UIState.PAGE_VIEW
+        self.save_config()
 
     def set_current_page_tile(self, tile):
         page = self.pages[self.selected_page_index]

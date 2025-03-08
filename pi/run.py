@@ -284,12 +284,12 @@ def setupDisplay():
     # 1) Create some tiles
     global manager
     tiles = [
-        Tile(name="Ch A", volume=5),
+        Tile(name="Ch A", volume=0),
         Tile(name="Ch B", volume=0),
-        Tile(name="Ch C", volume=8, is_calledByUser=CALLPHRASE),
-        Tile(name="Ch D", volume=2),
-        Tile(name="Ch E", volume=5),
-        Tile(name="Ch F", volume=10),
+        Tile(name="Ch C", volume=0),
+        Tile(name="Ch D", volume=0),
+        Tile(name="Ch E", volume=0),
+        Tile(name="Ch F", volume=0),
         # ... add as many as you want ...
     ]
 
@@ -452,12 +452,12 @@ def updateTiles(channels):
         )
         
         tiles.append(tile_obj)
-        manager.tiles = tiles
+        manager.all_tiles = tiles
         
 
 def calledFrom(fromuser:str,tochannel:str):
     print("called")
-    for channelTile in manager.tiles:
+    for channelTile in manager.all_tiles:
         if channelTile.id == int(tochannel):  # Convert str to int            print("by user: " + str(fromuser))
             channelTile.is_calledByUser = fromuser
 

@@ -1,7 +1,10 @@
 import subprocess
 import jackcontroll
 from displayLib import Tile
-BASEDIR_MUMBLE = "/home/coms2/intercom_mumble/mumble/build/"  # Adjust to your environment
+import os
+
+BASEDIR_MUMBLE = os.path.expanduser("~/mumble/build/")
+#BASEDIR_MUMBLE = "/home/coms2/intercom_mumble/mumble/build/"  # Adjust to your environment
 PLATFORM_PARAM = "-platform offscreen"
 def talk(channel: Tile , on=True, toggle=False):
     """

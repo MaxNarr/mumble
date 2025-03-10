@@ -80,7 +80,7 @@ def on_press2():
 def on_release2():
     global manager,doublePressFlag2
     if not doublePressFlag2:
-        mumbleRPC.talk(manager.get_current_talk_group_tiles()[1],on=False)
+        mumbleRPC.talk(manager.get_current_talk_group_tiles()[1],on=False,manager=manager)
 
 
 def on_press1():
@@ -99,7 +99,7 @@ def on_press1():
 def on_release1():
     global manager,doublePressFlag1
     if not doublePressFlag1:
-        mumbleRPC.talk(manager.get_current_talk_group_tiles()[0],on=False)
+        mumbleRPC.talk(manager.get_current_talk_group_tiles()[0],on=False,manager=manager)
 
 
 # Event functions for new buttons

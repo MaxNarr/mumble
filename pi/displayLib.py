@@ -7,7 +7,7 @@ import math
 import spidev as SPI
 from enum import Enum
 from PIL import Image, ImageDraw, ImageFont
-
+from typing import List 
 # Replace with your local ST7789 driver import
 from DisplayST7789 import ST7789
 
@@ -349,7 +349,7 @@ class LayoutOption(Enum):
 # └─────────────────────────────────────────────────────────────┘
 
 class UIManager:
-    def __init__(self, all_tiles):
+    def __init__(self, all_tiles:List[Tile]):
         self.cfg_manager = ConfigManager()
         self.all_tiles = all_tiles
         # Default
@@ -385,8 +385,25 @@ class UIManager:
             # if no config => init default single page
             self.pages = [ [EmptyTile() for _ in range(self.num_slots_per_page())] ]
 
+
         self.init_general_settings_view()
         self.init_layout_settings_view()
+
+
+    def initListening(self):
+        #be aware: Server may have maximum RPC requests per Second set to a too low number. 
+        # --> spaming these calls could potentially not work
+        #Idea: trigger each channel to set the listening mode on the server
+        #--> Actually listen after startup if thats what is displayed
+        for channel in self.all_tiles:
+            channel.set_volume(channel.volume)
+
+    def isAnyChannelTalking(self):
+        channelTalkingCount = 0
+        for channel in self.all_tiles:
+            if channel.talking:
+                channelTalkingCount += 1
+        return channelTalkingCount
 
     def init_general_settings_view(self):
         items = ["Display Name", "IP Settings","Layout"]

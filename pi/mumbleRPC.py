@@ -1,12 +1,12 @@
 import subprocess
 import jackcontroll
-from displayLib import Tile
+from displayLib import Tile, UIManager
 import os
 
 BASEDIR_MUMBLE = os.path.expanduser("~/mumble/build/")
 #BASEDIR_MUMBLE = "/home/coms2/intercom_mumble/mumble/build/"  # Adjust to your environment
 PLATFORM_PARAM = "-platform offscreen"
-def talk(channel: Tile , on=True, toggle=False):
+def talk(channel: Tile , on=True, toggle=False, manager: UIManager = None):
     """
     Example: mumble rpc shouttochannel_{channel_id}
     """
@@ -22,7 +22,13 @@ def talk(channel: Tile , on=True, toggle=False):
     else:
         cmd = f"{BASEDIR_MUMBLE}mumble rpc stopshouttochannel_{channel.id} {PLATFORM_PARAM}"
         output = run_command(cmd)
-        jackcontroll.disconnectSideToneJack()
+        if manager.isAnyChannelTalking == 0:
+            jackcontroll.disconnectSideToneJack()
+
+    
+    
+
+    
     return output
 
 def listen(channel: Tile ):

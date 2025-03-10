@@ -403,6 +403,7 @@ class UIManager:
         for channel in self.all_tiles:
             if channel.talking:
                 channelTalkingCount += 1
+                print("is talking: "+channel.name)
         return channelTalkingCount
 
     def init_general_settings_view(self):

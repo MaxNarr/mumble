@@ -24,6 +24,7 @@ def talk(channel: Tile , on=True, toggle=False, manager: UIManager = None):
         output = run_command(cmd)
         if manager.isAnyChannelTalking == 0:
             jackcontroll.disconnectSideToneJack()
+        
 
     
     

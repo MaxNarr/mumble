@@ -23,7 +23,7 @@ def talk(channel: Tile , on=True, toggle=False, manager: UIManager = None):
         cmd = f"{BASEDIR_MUMBLE}mumble rpc stopshouttochannel_{channel.id} {PLATFORM_PARAM}"
         output = run_command(cmd)
         print("stop shout!")
-        if manager.isAnyChannelTalking == 0:
+        if manager.isAnyChannelTalking() == 0:
             jackcontroll.disconnectSideToneJack()
         
 

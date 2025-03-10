@@ -78,7 +78,7 @@ def on_press2():
     mumbleRPC.talk(manager.get_current_talk_group_tiles()[1],on=True)
 
 def on_release2():
-    #global manager,doublePressFlag2
+    global manager,doublePressFlag2
     if not doublePressFlag2:
         mumbleRPC.talk(manager.get_current_talk_group_tiles()[1],on=False,manager=manager)
 
@@ -97,7 +97,7 @@ def on_press1():
     mumbleRPC.talk(manager.get_current_talk_group_tiles()[0],on=True)
 
 def on_release1():
-    #global manager,doublePressFlag1
+    global manager,doublePressFlag1
     if not doublePressFlag1:
         mumbleRPC.talk(manager.get_current_talk_group_tiles()[0],on=False,manager=manager)
 
@@ -297,7 +297,7 @@ def setupDisplay():
     manager = UIManager(tiles)
     # 3) Render page 0 with layout "4" (4 tiles per page)
     manager.render()
-    frameUpdater = UpdaterThread(manager, times=0, interval=0.1) #10fps
+    frameUpdater = UpdaterThread(manager, times=0, interval=0.05) #10fps
     frameUpdater.start()
     #manager.page_selected = True
     #frameUpdater.stop()

@@ -401,6 +401,7 @@ class UIManager:
     def isAnyChannelTalking(self):
         channelTalkingCount = 0
         for channel in self.all_tiles:
+            print("channel is talking: "+channel.name + " "+ str(channel.talking))
             if channel.talking:
                 channelTalkingCount += 1
                 print("is talking: "+channel.name)

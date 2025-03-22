@@ -35,6 +35,8 @@ def start_jackd(interface=None, sample_rate=48000, buffer_size=128, periods=3):
             return False
         
         print("JACK server started successfully.")
+        connectMumbleOutputToSystemOut()
+        
         return True
 
     except Exception as e:
@@ -62,6 +64,29 @@ def connect_jack_ports(source, destination, disconnect=False):
             print(f"Failed to connect {source} -> {destination}: {result.stderr.strip()}")
     except Exception as e:
         print(f"Error connecting {source} -> {destination}: {e}")
+
+def connectMumbleOutputToSystemOut():
+    try:
+        # List JACK ports clearly
+        result = subprocess.run("jack_lsp", shell=True, capture_output=True, text=True)
+        ports = result.stdout.strip().split("\n")
+
+        # Find mumble output ports
+        mumble_out_ports = [p for p in ports if "mumble:output" in p]
+
+        # Find system playback ports
+        playback_ports = [p for p in ports if "system:playback" in p]
+
+        if not mumble_out_ports or not playback_ports:
+            print("Error: Mumble output or playback ports not found.")
+        else:
+            # Connect mono mumble output to all system playback channels clearly
+            for playback_port in playback_ports:
+                connect_jack_ports(mumble_out_ports[0], playback_port)
+            print("Successfully connected Mumble output to system playback.")
+
+    except Exception as e:
+        print(f"Error occurred: {e}")
 
 def connectSideToneJack():
     """

@@ -13,6 +13,7 @@ import jackcontroll
 from updater_thread import UpdaterThread
 from typing import List
 import math
+import sys
 from gpiozero import RotaryEncoder
 from gpiozero import Button
 
@@ -370,7 +371,12 @@ def socket_listener(server):
 def user_input_loop():
     """Loop forever reading user input from stdin."""
     while True:
-        user_input = input("> ").strip()
+        user_input = ""
+        if sys.stdin.isatty():
+            user_input = input("> ").strip()
+        else:
+            print("Skipping input() because running under systemd")
+
         if user_input.lower() == "exit":
             print("Exiting program.")
             # Return from this thread, which causes .join() to complete

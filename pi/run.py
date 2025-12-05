@@ -14,9 +14,14 @@ from updater_thread import UpdaterThread
 from typing import List
 import math
 import sys
+import signal
 from gpiozero import RotaryEncoder
 from gpiozero import Button
 
+
+BASE = os.path.expanduser("~/mumble")
+MUMBLE_BIN = f"{BASE}/build/mumble"
+MUMBLE_URL = f"mumble://{os.uname().nodename}@intercom0.local"
 
 SOCKET_PATH = f"/run/user/{os.getuid()}/python_rpc_serverSocket"
 MINVOLUME = -2
@@ -153,15 +158,31 @@ def on_release_disp3():
     pass
 
 def main():
-    jackstarted = jackcontroll.start_jackd()
-    print("1")
-    setupDisplay()
-    print("2")
-    setupControlls()
-    print("3")
-    processCommandsAndRPC()
-    print("4")
 
+    jackstarted = jackcontroll.start_jackd()
+
+    mumble_proc = start_mumble()
+    setupDisplay()
+    setupControlls()
+    processCommandsAndRPC()
+
+    try:
+        mumble_proc.wait()
+    finally:
+        print("[System] Terminating Mumble...")
+        os.killpg(os.getpgid(mumble_proc.pid), signal.SIGTERM)
+        print("[System] Done.")
+
+
+def start_mumble():
+    print("[Mumble] Launching mumble headless...")
+    proc = subprocess.Popen(
+        [MUMBLE_BIN, MUMBLE_URL, "--platform", "offscreen"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
+        preexec_fn=os.setsid  # needed so we can kill the whole group
+    )
+    return proc
 
 def setupControlls():
 
@@ -304,6 +325,13 @@ def setupDisplay():
     #frameUpdater.stop()
     #manager.render(page_number=1, layout="2")
 
+def fetchChannelInfo():
+    while True:
+        mumbleRPC.get_channel_info()
+        # z.B. Mumble RPC Status
+        # subprocess.call([...])
+        time.sleep(60)
+
 def processCommandsAndRPC():
     """Starts two threads:
        1) One for socket connections
@@ -338,6 +366,8 @@ def processCommandsAndRPC():
     )
     user_thread.start()
 
+    fetchChannelInfo_thread = threading.Thread(target=fetchChannelInfo, daemon=True)
+    fetchChannelInfo_thread.start()
     # 4. Keep main thread alive until user types 'exit'
     #    We'll just join the user_thread so the program doesn’t exit immediately
     user_thread.join()
@@ -450,7 +480,7 @@ def updateTiles(channels):
         # Create a Tile for each channel (you can set default states or values as needed)
         tile_obj = Tile(
             name=channel_name,
-            volume=0,       # Default volume (change if desired)
+            volume=-2,       # Default volume (change if desired)
             is_calledByUser=None,
             selected=False,
             talking=False,

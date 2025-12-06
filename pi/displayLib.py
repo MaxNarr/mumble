@@ -445,7 +445,7 @@ class UIManager:
         except:
             ip = server_entry
         url = f"mumble://{self.display_name}@{ip}"
-        self.client.start(MUMBLE_BIN, url)
+        self.client.connect(MUMBLE_BIN, url)
         
      
     def _on_service_update(self, zeroconf, service_type, name, state_change):

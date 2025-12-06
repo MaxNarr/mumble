@@ -921,6 +921,10 @@ class UIManager:
             self.general_settings_view.move_up()
         elif self.state == UIState.LAYOUT_SETTINGS:
             self.layout_settings_view.move_up()
+        elif self.state == UIState.SERVER_MODE_SETTINGS:
+            self.server_mode_settings_view.move_up()
+        elif self.state == UIState.SERVER_SELECT:
+            self.server_select_view.move_up()
 
 
     def on_joystick_down(self):
@@ -936,6 +940,10 @@ class UIManager:
             self.general_settings_view.move_down()
         elif self.state == UIState.LAYOUT_SETTINGS:
             self.layout_settings_view.move_down()
+        elif self.state == UIState.SERVER_MODE_SETTINGS:
+            self.server_mode_settings_view.move_down()
+        elif self.state == UIState.SERVER_SELECT:
+            self.server_select_view.move_down()
 
     def on_joystick_left(self):
         if self.state == UIState.PAGE_VIEW:

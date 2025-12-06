@@ -2,11 +2,13 @@ import subprocess
 import socket
 import threading
 import time
+import os
 from zeroconf import Zeroconf, ServiceInfo
 
 
 class MumbleServerController:
-    def __init__(self, name="RPi Mumble Server", port=64738, path="mumble/build_server/mumble-server"):
+    SERVER_BIN = os.path.expanduser("~/mumble/build/mumble-server")
+    def __init__(self, name="RPi Mumble Server", port=64738, path=SERVER_BIN):
         self.name = name
         self.port = port
         self.path = path

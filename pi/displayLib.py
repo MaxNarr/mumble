@@ -462,8 +462,8 @@ class UIManager:
                 if self._is_server_alive(ip):
                     alive_list.append(s)
 
-            self.discovered_servers = alive_list
             if len(self.discovered_servers) != len(alive_list): self.updateServerListItems()
+            self.discovered_servers = alive_list
 
 
             if not self.selected_server:

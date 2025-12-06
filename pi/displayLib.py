@@ -453,11 +453,18 @@ class UIManager:
         if not info:
             return
         ip = ".".join(map(str, info.addresses[0]))
-        entry = f"{name} ({ip})"
+
+        # Extract clean instance name
+        clean_name = name.split("._mumble._tcp.local.")[0]
+
+        entry = f"{clean_name} ({ip})"
+
         if entry not in self.discovered_servers:
             self.discovered_servers.append(entry)
+
         items = self.discovered_servers + ["Back"]
         self.server_select_view.items = items
+
         if self.server_select_view.selected_index >= len(items):
             self.server_select_view.selected_index = max(0, len(items)-1)
 

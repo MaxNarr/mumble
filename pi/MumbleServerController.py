@@ -40,7 +40,7 @@ class MumbleServerController:
 
         self.service_info = ServiceInfo(
             "_mumble._tcp.local.",
-            f"{self.name}._mumble._tcp.local.",
+            f"{socket.gethostname()}._mumble._tcp.local.",
             addresses=[socket.inet_aton(ip)],
             port=self.port,
             properties={},

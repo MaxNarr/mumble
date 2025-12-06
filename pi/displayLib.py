@@ -452,9 +452,21 @@ class UIManager:
             import time
             time.sleep(5)
 
+            alive_list = []
+            for s in self.discovered_servers:
+                try:
+                    ip = s.split("(")[1].replace(")", "").strip()
+                except:
+                    continue
+
+                if self._is_server_alive(ip):
+                    alive_list.append(s)
+
+            self.discovered_servers = alive_list
+
             if not self.selected_server:
                 continue
-
+  
             if self.selected_server in self.discovered_servers:
                 if self.connected_server == self.selected_server:
                     # Already connected, do not reconnect
@@ -474,7 +486,13 @@ class UIManager:
 
 
 
-        
+    def _is_server_alive(self, ip, port=64738):
+        try:
+            sock = socket.create_connection((ip, port), timeout=1.0)
+            sock.close()
+            return True
+        except:
+            return False
 
     def connect_to_server(self, server_entry):
         print(f"[Client] Connecting to server: {server_entry}")

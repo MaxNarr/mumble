@@ -44,12 +44,13 @@ class MumbleServerController:
             addresses=[socket.inet_aton(ip)],
             port=self.port,
             properties={},
-            server=f"{socket.gethostname()}.local.",
-            ttl=5
+            server=f"{socket.gethostname()}.local."        )
+
+        self.zeroconf.register_service(
+            self.service_info,
+            allow_name_change=False,
+            ttl=5    # timeout
         )
-
-        self.zeroconf.register_service(self.service_info)
-
     def stop_advertising(self):
         if self.service_info:
             print("[Zeroconf] Stopping advertisement…")

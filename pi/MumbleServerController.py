@@ -7,7 +7,7 @@ from zeroconf import Zeroconf, ServiceInfo
 
 
 class MumbleServerController:
-    SERVER_BIN = os.path.expanduser("~/mumble/build/mumble-server")
+    SERVER_BIN = os.path.expanduser("~/mumble/build_server/mumble-server")
     def __init__(self, name="RPi Mumble Server", port=64738, path=SERVER_BIN):
         self.name = name
         self.port = port

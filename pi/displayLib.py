@@ -429,6 +429,14 @@ class UIManager:
         self.discovered_servers = []
         self.browser = ServiceBrowser(self.zeroconf, "_mumble._tcp.local.", handlers=[self._on_service_update])
 
+        # Auto-start server if previous config had server mode ON
+        if self.server_mode:
+            try:
+                print("Auto-starting Mumble server (from saved config)…")
+                self.mumble.start_server()
+            except Exception as e:
+                print("[Startup] Failed to auto-start server:", e)
+
         # Auto-connect on startup if config contained a server
         if self.connected_server:
             self.connect_to_server(self.connected_server)
@@ -571,6 +579,7 @@ class UIManager:
         self.use_dhcp = data.get("useDHCP", True)
         self.selected_server = data.get("selectedServer", None)
         self.connected_server = data.get("connectedServer", None)
+        self.server_mode = data.get("serverMode", False)
 
     def save_config(self):
         """
@@ -605,6 +614,7 @@ class UIManager:
         data["useDHCP"] = self.use_dhcp
         data["selectedServer"] = self.selected_server
         data["connectedServer"] = self.connected_server
+        data["serverMode"] = self.server_mode
 
         self.cfg_manager.save_config(data)
 

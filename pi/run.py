@@ -162,34 +162,16 @@ def main():
 
     jackstarted = jackcontroll.start_jackd()
 
-    mumble_proc = start_mumble()
     setupDisplay()
     setupControlls()
     processCommandsAndRPC()
-
+    
     try:
-        mumble_proc.wait()
-    finally:
-        print("[System] Terminating Mumble...")
-        os.killpg(os.getpgid(mumble_proc.pid), signal.SIGTERM)
-        print("[System] Done.")
-        # Ensure UI shutdown cleans up MumbleServerController
-        try:
-            if manager is not None:
-                manager.close()
-        except Exception as e:
-            print("[Cleanup] Error during manager close:", e)
+        if manager is not None:
+            manager.close()
+    except Exception as e:
+        print("[Cleanup] Error during manager close:", e)
 
-
-def start_mumble():
-    print("[Mumble] Launching mumble headless...")
-    proc = subprocess.Popen(
-        [MUMBLE_BIN, MUMBLE_URL, "--platform", "offscreen"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.STDOUT,
-        preexec_fn=os.setsid  # needed so we can kill the whole group
-    )
-    return proc
 
 def setupControlls():
 

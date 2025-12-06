@@ -2,6 +2,7 @@ import subprocess
 import os
 import signal
 import threading
+import mumbleRPC
 
 class MumbleClientController:
     _instance = None
@@ -15,6 +16,14 @@ class MumbleClientController:
             cls._instance._mumble_proc = None
             cls._instance.current_url = None
         return cls._instance
+
+    def _delayed_refresh(self):
+        import time
+        time.sleep(3)
+        try:
+            mumbleRPC.get_channel_info()
+        except Exception as e:
+            print("[Client] Delayed channel refresh failed:", e)
 
     # Build URL from IP + username
     def _make_url(self, ip, username="client"):
@@ -36,6 +45,8 @@ class MumbleClientController:
             stderr=subprocess.STDOUT,
             preexec_fn=os.setsid,
         )
+        # Delayed channel refresh
+        threading.Thread(target=self._delayed_refresh, daemon=True).start()
         return True
 
     # -------------------------------------------------------------
@@ -67,6 +78,8 @@ class MumbleClientController:
             stderr=subprocess.STDOUT,
             preexec_fn=os.setsid,
         )
+        # Delayed channel refresh
+        threading.Thread(target=self._delayed_refresh, daemon=True).start()
         return True
 
     # -------------------------------------------------------------

@@ -1,6 +1,5 @@
 import subprocess
 import jackcontroll
-from displayLib import Tile, UIManager
 import os
 
 BASEDIR_MUMBLE = os.path.expanduser("~/mumble/build/")

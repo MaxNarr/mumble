@@ -495,7 +495,16 @@ class UIManager:
         return channelTalkingCount
 
     def init_general_settings_view(self):
-        items = ["Display Name", "IP Settings", "Layout", "Server Mode", "Select Server", "Reconnect", "Reset Settings"]
+        server_status = "On" if self.server_mode else "Off"
+        items = [
+            "Display Name",
+            "IP Settings",
+            "Layout",
+            f"Server Mode ({server_status})",
+            "Select Server",
+            "Reconnect",
+            "Reset Settings"
+        ]
         self.general_settings_view = ScrollableListView(items, title="General Settings")
     
     def init_layout_settings_view(self):
@@ -631,6 +640,24 @@ class UIManager:
         page_text = f"Page {self.selected_page_index+1}"
         draw_centered_text(draw, 0, 0, DISPLAY_WIDTH, top_bar_h, page_text, FONT, (255,255,255))
 
+        # --- Server status indicator (green = ON, red = OFF) ---
+        indicator_radius = 6
+        indicator_x = DISPLAY_WIDTH - 12
+        indicator_y = top_bar_h // 2
+
+        status_color = (0,255,0) if self.server_mode else (255,0,0)
+
+        draw.ellipse(
+            (
+                indicator_x - indicator_radius,
+                indicator_y - indicator_radius,
+                indicator_x + indicator_radius,
+                indicator_y + indicator_radius,
+            ),
+            fill=status_color,
+            outline=(0,0,0)
+        )
+
         tile_area_y = top_bar_h
         tile_area_h = DISPLAY_HEIGHT - top_bar_h
 
@@ -660,7 +687,17 @@ class UIManager:
         self.tile_settings_view.render()
 
     def render_general_settings_view(self):
-        # Server mode toggles immediately on selection; no submenu required.
+        # Update server mode label dynamically
+        server_status = "On" if self.server_mode else "Off"
+        self.general_settings_view.items = [
+            "Display Name",
+            "IP Settings",
+            "Layout",
+            f"Server Mode ({server_status})",
+            "Select Server",
+            "Reconnect",
+            "Reset Settings"
+        ]
         self.general_settings_view.render()
 
     def render_layout_settings_view(self):

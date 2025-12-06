@@ -370,6 +370,31 @@ class UIManager:
         self.selected_page_index = 0
         self.selected_tile_index = 0
 
+        # --- Load saved configuration or create default pages ---
+        loaded = self.cfg_manager.load_config()
+        if loaded:
+            try:
+                self.apply_loaded_config(loaded)
+            except Exception as e:
+                print("[Config] Error applying config, using defaults:", e)
+                loaded = None
+
+        if not loaded:
+            # Create a default single page from the provided all_tiles
+            slots = self.num_slots_per_page()
+            page = []
+            for i in range(slots):
+                if i < len(self.all_tiles):
+                    page.append(self.all_tiles[i])
+                else:
+                    page.append(EmptyTile())
+            self.pages = [page]
+
+        # Fallback: If pages still empty, create one empty page
+        if not self.pages:
+            slots = self.num_slots_per_page()
+            self.pages = [[EmptyTile() for _ in range(slots)]]
+
         # White cursor
         self.tile_cursor_active = True
         self.last_input_time = time.time()

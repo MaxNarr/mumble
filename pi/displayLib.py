@@ -854,7 +854,7 @@ class UIManager:
             self.state = UIState.EDIT_IP
         elif chosen == "Layout":
             self.state = UIState.LAYOUT_SETTINGS
-        elif chosen == "Server Mode":
+        elif chosen.startswith("Server Mode"):
             self.state = UIState.SERVER_MODE_SETTINGS
         elif chosen == "Select Server":
             self.state = UIState.SERVER_SELECT

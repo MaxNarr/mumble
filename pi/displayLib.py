@@ -421,9 +421,37 @@ class UIManager:
         self.init_layout_settings_view()
         self.init_server_mode_settings_view()
         self.init_server_select_view()
-        self.zeroconf = Zeroconf()
+        # Ensure discovered server list starts empty each run
         self.discovered_servers = []
+        self.zeroconf = Zeroconf()
         self.browser = ServiceBrowser(self.zeroconf, "_mumble._tcp.local.", handlers=[self._on_service_update])
+        # Start background auto-reconnect thread
+        import threading
+        threading.Thread(target=self._auto_reconnect_loop, daemon=True).start()
+    def _auto_reconnect_loop(self):
+        """
+        Background reconnect loop:
+        - runs every 5 seconds
+        - reconnects to selected_server when it becomes discoverable
+        - keeps retrying even if the server is offline
+        """
+        while True:
+            import time
+            time.sleep(5)
+
+            if not self.selected_server:
+                continue
+
+            if self.selected_server in self.discovered_servers:
+                try:
+                    ip = self.selected_server.split("(")[1].replace(")", "").strip()
+                except Exception:
+                    continue
+
+                print(f"[AutoReconnect] Server online, connecting to {ip}")
+                self.client.connect(ip, self.display_name)
+            else:
+                print(f"[AutoReconnect] {self.selected_server} not discovered, retrying...")
 
         # Auto-start server if previous config had server mode ON
         if self.server_mode:

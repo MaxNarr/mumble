@@ -11,7 +11,7 @@ from enum import Enum
 from PIL import Image, ImageDraw, ImageFont
 from typing import List 
 # Zeroconf imports
-from zeroconf import Zeroconf, ServiceBrowser
+from zeroconf import Zeroconf, ServiceBrowser, ServiceStateChange
 # Replace with your local ST7789 driver import
 import threading
 
@@ -490,17 +490,26 @@ class UIManager:
      
     def _on_service_update(self, zeroconf, service_type, name, state_change):
         info = zeroconf.get_service_info(service_type, name)
-        if not info:
-            return
-        ip = ".".join(map(str, info.addresses[0]))
-
-        # Extract clean instance name
         clean_name = name.split("._mumble._tcp.local.")[0]
 
-        entry = f"{clean_name} ({ip})"
+        ip = None
+        if info and info.addresses:
+            ip = ".".join(map(str, info.addresses[0]))
+            entry = f"{clean_name} ({ip})"
+        else:
+            # For removals, info can be None, so reconstruct key from name only
+            # and remove any entries with that name prefix.
+            entry = None
 
-        if entry not in self.discovered_servers:
-            self.discovered_servers.append(entry)
+        if state_change == ServiceStateChange.Added or state_change == ServiceStateChange.Updated:
+            if entry and entry not in self.discovered_servers:
+                self.discovered_servers.append(entry)
+        elif state_change == ServiceStateChange.Removed:
+            # Remove all entries for this name (could handle multiple IPs)
+            self.discovered_servers = [
+                e for e in self.discovered_servers
+                if not e.startswith(clean_name + " ")
+            ]
 
         items = self.discovered_servers + ["Back"]
         self.server_select_view.items = items

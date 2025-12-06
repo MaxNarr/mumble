@@ -44,7 +44,8 @@ class MumbleServerController:
             addresses=[socket.inet_aton(ip)],
             port=self.port,
             properties={},
-            server=f"{socket.gethostname()}.local."
+            server=f"{socket.gethostname()}.local.",
+            ttl=5
         )
 
         self.zeroconf.register_service(self.service_info)

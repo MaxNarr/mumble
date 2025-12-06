@@ -17,10 +17,13 @@ from zeroconf import Zeroconf, ServiceBrowser
 from DisplayST7789 import ST7789
 from MumbleServerController import MumbleServerController
 from MumbleClientController import MumbleClientController
-from run import MUMBLE_BIN
 
 CONFIG_FILE = "config.json"
 CALLPHRASE = "calling"
+
+# Define MUMBLE_BIN path locally (was previously imported from run.py)
+BASE = os.path.expanduser("~/mumble")
+MUMBLE_BIN = f"{BASE}/build/mumble"
 
 #
 #  ┌────────────────────────────────────────────────────────────────┐

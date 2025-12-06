@@ -1,6 +1,7 @@
 import subprocess
 import time
 import socket
+from zeroconf import Zeroconf, ServiceInfo
 import xml.etree.ElementTree as ET
 import os
 import threading
@@ -172,6 +173,12 @@ def main():
         print("[System] Terminating Mumble...")
         os.killpg(os.getpgid(mumble_proc.pid), signal.SIGTERM)
         print("[System] Done.")
+        # Ensure UI shutdown cleans up MumbleServerController
+        try:
+            if manager is not None:
+                manager.close()
+        except Exception as e:
+            print("[Cleanup] Error during manager close:", e)
 
 
 def start_mumble():

@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 
+# Existing imports
 import os
 import json
 import time
 import math
 import spidev as SPI
+import socket
 from enum import Enum
 from PIL import Image, ImageDraw, ImageFont
 from typing import List 
+# Zeroconf imports
+from zeroconf import Zeroconf, ServiceBrowser
 # Replace with your local ST7789 driver import
-from DisplayST7789 import ST7789
 
+from DisplayST7789 import ST7789
+from MumbleServerController import MumbleServerController
+from MumbleClientController import MumbleClientController
+from run import MUMBLE_BIN
 
 CONFIG_FILE = "config.json"
 CALLPHRASE = "calling"
@@ -330,6 +337,8 @@ class UIState(Enum):
     EDIT_DISPLAY_NAME = 4
     EDIT_IP = 5
     LAYOUT_SETTINGS = 6
+    SERVER_MODE_SETTINGS = 7
+    SERVER_SELECT = 8
 
 
 
@@ -362,32 +371,75 @@ class UIManager:
         self.tile_cursor_active = True
         self.last_input_time = time.time()
 
-          # Global talk group variables (absolute across pages)
+        # Global talk group variables (absolute across pages)
         self.talk_group_page = 0
         self.talk_group_row = 0
 
         # UI state
         self.state = UIState.PAGE_VIEW
-
-        # Some example config
-        self.display_name = "My Pi"
-        self.ip_address = "192.168.0.100"
+        self.display_name = socket.gethostname()
+        # Determine local IP automatically
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            self.ip_address = s.getsockname()[0]
+            s.close()
+        except Exception:
+            self.ip_address = "0.0.0.0"
         self.use_dhcp = True
-
-        self.tile_settings_view = None
-        self.general_settings_view = None
-
-        # Attempt to load config
-        loaded = self.cfg_manager.load_config()
-        if loaded:
-            self.apply_loaded_config(loaded)
-        else:
-            # if no config => init default single page
-            self.pages = [ [EmptyTile() for _ in range(self.num_slots_per_page())] ]
-
-
+        self.server_mode = False
+        self.selected_server = None
+        self.connected_server = None
+        self.mumble = MumbleServerController()
+        self.client = MumbleClientController()
+        
         self.init_general_settings_view()
         self.init_layout_settings_view()
+        self.init_server_mode_settings_view()
+        self.init_server_select_view()
+        self.zeroconf = Zeroconf()
+        self.discovered_servers = []
+        self.browser = ServiceBrowser(self.zeroconf, "_mumble._tcp.local.", handlers=[self._on_service_update])
+
+        # Auto-connect on startup if config contained a server
+        if self.connected_server:
+            self.connect_to_server(self.connected_server)
+
+        
+
+    def connect_to_server(self, server_entry):
+        print(f"[Client] Connecting to server: {server_entry}")
+        self.connected_server = server_entry
+        self.save_config()
+        # Extract IP from "Name (IP)"
+        try:
+            ip = server_entry.split("(")[1].replace(")", "").strip()
+        except:
+            ip = server_entry
+        url = f"mumble://{self.display_name}@{ip}"
+        self.client.start(MUMBLE_BIN, url)
+        
+     
+    def _on_service_update(self, zeroconf, service_type, name, state_change):
+        info = zeroconf.get_service_info(service_type, name)
+        if not info:
+            return
+        ip = ".".join(map(str, info.addresses[0]))
+        entry = f"{name} ({ip})"
+        if entry not in self.discovered_servers:
+            self.discovered_servers.append(entry)
+        items = self.discovered_servers + ["Back"]
+        self.server_select_view.items = items
+        if self.server_select_view.selected_index >= len(items):
+            self.server_select_view.selected_index = max(0, len(items)-1)
+
+    def init_server_mode_settings_view(self):
+        items = ["On", "Off", "Back"]
+        self.server_mode_settings_view = ScrollableListView(items, title="Server Mode")
+
+    def init_server_select_view(self):
+        # Placeholder — will be populated dynamically from zeroconf discovery
+        self.server_select_view = ScrollableListView(["No servers found","Back"], title="Select Server")
 
 
     def initListening(self):
@@ -408,8 +460,7 @@ class UIManager:
         return channelTalkingCount
 
     def init_general_settings_view(self):
-        items = ["Display Name", "IP Settings","Layout"]
-        # You could also add a "Layout" item if you want
+        items = ["Display Name", "IP Settings", "Layout", "Server Mode", "Select Server", "Reconnect", "Reset Settings"]
         self.general_settings_view = ScrollableListView(items, title="General Settings")
     
     def init_layout_settings_view(self):
@@ -471,9 +522,11 @@ class UIManager:
             self.pages = [ [EmptyTile() for _ in range(self.num_slots_per_page())] ]
 
         # displayName / ip
-        self.display_name = data.get("displayName","My Pi")
-        self.ip_address = data.get("ipAddress","192.168.0.100")
+        #self.display_name = data.get("displayName","My Pi")
+        #self.ip_address = data.get("ipAddress","192.168.0.100")
         self.use_dhcp = data.get("useDHCP", True)
+        self.selected_server = data.get("selectedServer", None)
+        self.connected_server = data.get("connectedServer", None)
 
     def save_config(self):
         """
@@ -506,6 +559,8 @@ class UIManager:
         data["displayName"] = self.display_name
         data["ipAddress"] = self.ip_address
         data["useDHCP"] = self.use_dhcp
+        data["selectedServer"] = self.selected_server
+        data["connectedServer"] = self.connected_server
 
         self.cfg_manager.save_config(data)
 
@@ -570,6 +625,7 @@ class UIManager:
         self.tile_settings_view.render()
 
     def render_general_settings_view(self):
+        # Server mode toggles immediately on selection; no submenu required.
         self.general_settings_view.render()
 
     def render_layout_settings_view(self):
@@ -605,6 +661,10 @@ class UIManager:
             self.render_edit_ip()
         elif self.state == UIState.LAYOUT_SETTINGS:
             self.render_layout_settings_view()
+        elif self.state == UIState.SERVER_MODE_SETTINGS:
+            self.server_mode_settings_view.render()
+        elif self.state == UIState.SERVER_SELECT:
+            self.server_select_view.render()
 
  #
     # ─────────────────────────── LAYOUT SETTINGS ─────────────────────────────
@@ -722,8 +782,44 @@ class UIManager:
             self.state = UIState.EDIT_IP
         elif chosen == "Layout":
             self.state = UIState.LAYOUT_SETTINGS
-        else:
-            pass
+        elif chosen == "Server Mode":
+            self.state = UIState.SERVER_MODE_SETTINGS
+        elif chosen == "Select Server":
+            self.state = UIState.SERVER_SELECT
+        elif chosen == "Reconnect":
+            if self.selected_server:
+                print("Reconnecting to:", self.selected_server)
+                self.connect_to_server(self.selected_server)
+        elif chosen == "Reset Settings":
+            print("Resetting all settings...")
+            self.__init__(self.all_tiles)
+            return
+    def select_in_server_select_view(self):
+        chosen = self.server_select_view.get_selected_item()
+        if chosen == "Back":
+            self.state = UIState.GENERAL_SETTINGS
+            return
+
+        # Store chosen server and auto-connect
+        self.selected_server = chosen
+        print("Selected Zeroconf server:", chosen)
+        self.connect_to_server(chosen)
+        self.state = UIState.GENERAL_SETTINGS
+
+    def select_in_server_mode_settings_view(self):
+        chosen = self.server_mode_settings_view.get_selected_item()
+        if chosen == "On":
+            self.server_mode = True
+            print("Starting Mumble server…")
+            self.mumble.start_server()
+            self.state = UIState.GENERAL_SETTINGS
+        elif chosen == "Off":
+            self.server_mode = False
+            print("Stopping Mumble server…")
+            self.mumble.stop_server()
+            self.state = UIState.GENERAL_SETTINGS
+        elif chosen == "Back":
+            self.state = UIState.GENERAL_SETTINGS
 
     #
     # ───────────────────── EVENT HANDLERS ──────────────────────────────────
@@ -803,6 +899,10 @@ class UIManager:
             self.select_in_general_settings_view()
         elif self.state == UIState.LAYOUT_SETTINGS:
             self.select_in_layout_settings_view()
+        elif self.state == UIState.SERVER_MODE_SETTINGS:
+            self.select_in_server_mode_settings_view()
+        elif self.state == UIState.SERVER_SELECT:
+            self.select_in_server_select_view()
        
     #
     # ───────────────────── TALK GROUP SELECTION ────────────────────────────
@@ -869,3 +969,21 @@ class UIManager:
                     # Optionally update the displayed page:
                     self.selected_page_index = self.talk_group_page
     #
+    def close(self):
+        """
+        Cleanup on program exit: stop the Mumble server if running.
+        """
+        try:
+            if self.server_mode:
+                print("Shutting down Mumble server…")
+                self.mumble.stop_server()
+        except Exception as e:
+            print("Error during server shutdown:", e)
+        try:
+            self.zeroconf.close()
+        except:
+            pass
+        try:
+            self.client.stop()
+        except:
+            pass

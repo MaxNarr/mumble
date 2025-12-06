@@ -6,7 +6,8 @@ import threading
 class MumbleClientController:
     _instance = None
 
-    MUMBLE_BIN = os.path.expanduser("~/mumble/build/mumble")
+    BASE = "/home/intercom/mumble"
+    MUMBLE_BIN = f"{BASE}/build/mumble"
 
     def __new__(cls):
         if cls._instance is None:

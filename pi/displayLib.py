@@ -22,7 +22,7 @@ CONFIG_FILE = "config.json"
 CALLPHRASE = "calling"
 
 # Define MUMBLE_BIN path locally (was previously imported from run.py)
-BASE = os.path.expanduser("~/mumble")
+BASE = "/home/intercom/mumble"
 MUMBLE_BIN = f"{BASE}/build/mumble"
 
 #

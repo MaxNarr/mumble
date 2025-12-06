@@ -20,7 +20,7 @@ from gpiozero import RotaryEncoder
 from gpiozero import Button
 
 
-BASE = os.path.expanduser("~/mumble")
+BASE = "/home/intercom/mumble"
 MUMBLE_BIN = f"{BASE}/build/mumble"
 MUMBLE_URL = f"mumble://{os.uname().nodename}@intercom0.local"
 

@@ -414,10 +414,6 @@ class UIManager:
             s.close()
         except Exception:
             self.ip_address = "0.0.0.0"
-        self.use_dhcp = True
-        self.server_mode = False
-        self.selected_server = None
-        self.connected_server = None
         self.mumble = MumbleServerController()
         self.client = MumbleClientController()
         

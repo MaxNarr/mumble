@@ -13,6 +13,7 @@ from typing import List
 # Zeroconf imports
 from zeroconf import Zeroconf, ServiceBrowser
 # Replace with your local ST7789 driver import
+import threading
 
 from DisplayST7789 import ST7789
 from MumbleServerController import MumbleServerController
@@ -426,8 +427,20 @@ class UIManager:
         self.zeroconf = Zeroconf()
         self.browser = ServiceBrowser(self.zeroconf, "_mumble._tcp.local.", handlers=[self._on_service_update])
         # Start background auto-reconnect thread
-        import threading
         threading.Thread(target=self._auto_reconnect_loop, daemon=True).start()
+
+                # Auto-start server if previous config had server mode ON
+        if self.server_mode:
+            try:
+                print("Auto-starting Mumble server (from saved config)…")
+                self.mumble.start_server()
+            except Exception as e:
+                print("[Startup] Failed to auto-start server:", e)
+
+        # Auto-connect on startup if config contained a server
+        if self.connected_server:
+            self.connect_to_server(self.connected_server)
+
     def _auto_reconnect_loop(self):
         """
         Background reconnect loop:
@@ -443,6 +456,9 @@ class UIManager:
                 continue
 
             if self.selected_server in self.discovered_servers:
+                if self.connected_server == self.selected_server:
+                    # Already connected, do not reconnect
+                    continue
                 try:
                     ip = self.selected_server.split("(")[1].replace(")", "").strip()
                 except Exception:
@@ -450,20 +466,13 @@ class UIManager:
 
                 print(f"[AutoReconnect] Server online, connecting to {ip}")
                 self.client.connect(ip, self.display_name)
+                self.connected_server = self.selected_server
+
             else:
                 print(f"[AutoReconnect] {self.selected_server} not discovered, retrying...")
+                self.connected_server = None
 
-        # Auto-start server if previous config had server mode ON
-        if self.server_mode:
-            try:
-                print("Auto-starting Mumble server (from saved config)…")
-                self.mumble.start_server()
-            except Exception as e:
-                print("[Startup] Failed to auto-start server:", e)
 
-        # Auto-connect on startup if config contained a server
-        if self.connected_server:
-            self.connect_to_server(self.connected_server)
 
         
 

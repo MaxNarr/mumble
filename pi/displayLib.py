@@ -463,6 +463,8 @@ class UIManager:
                     alive_list.append(s)
 
             self.discovered_servers = alive_list
+            if len(self.discovered_servers) != len(alive_list): self.updateServerListItems()
+
 
             if not self.selected_server:
                 continue
@@ -528,7 +530,9 @@ class UIManager:
                 e for e in self.discovered_servers
                 if not e.startswith(clean_name + " ")
             ]
+        self.updateServerListItems()
 
+    def updateServerListItems(self):
         items = self.discovered_servers + ["Back"]
         self.server_select_view.items = items
 

@@ -453,6 +453,7 @@ class UIManager:
             time.sleep(5)
 
             alive_list = []
+            prevLen = len(self.discovered_servers)
             for s in self.discovered_servers:
                 try:
                     ip = s.split("(")[1].replace(")", "").strip()
@@ -462,8 +463,8 @@ class UIManager:
                 if self._is_server_alive(ip):
                     alive_list.append(s)
 
-            if len(self.discovered_servers) != len(alive_list): self.updateServerListItems()
             self.discovered_servers = alive_list
+            if  prevLen!= len(alive_list): self.updateServerListItems()
 
 
             if not self.selected_server:

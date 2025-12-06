@@ -22,7 +22,6 @@ from gpiozero import Button
 
 BASE = "/home/intercom/mumble"
 MUMBLE_BIN = f"{BASE}/build/mumble"
-MUMBLE_URL = f"mumble://{os.uname().nodename}@intercom0.local"
 
 SOCKET_PATH = f"/run/user/{os.getuid()}/python_rpc_serverSocket"
 MINVOLUME = -2
@@ -165,7 +164,7 @@ def main():
     setupDisplay()
     setupControlls()
     processCommandsAndRPC()
-    
+
     try:
         if manager is not None:
             manager.close()

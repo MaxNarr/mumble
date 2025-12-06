@@ -5,7 +5,7 @@ import os
 BASEDIR_MUMBLE = os.path.expanduser("~/mumble/build/")
 #BASEDIR_MUMBLE = "/home/coms2/intercom_mumble/mumble/build/"  # Adjust to your environment
 PLATFORM_PARAM = "-platform offscreen"
-def talk(channel: Tile , on=True, toggle=False, manager: UIManager = None):
+def talk(channel, on=True, toggle=False, manager=None):
     """
     Example: mumble rpc shouttochannel_{channel_id}
     """
@@ -32,7 +32,7 @@ def talk(channel: Tile , on=True, toggle=False, manager: UIManager = None):
     
     return output
 
-def listen(channel: Tile ):
+def listen(channel):
     """
     Example: mumble rpc listentochannelatvolume_{channel_id}_{volume}
     """
@@ -58,7 +58,7 @@ def get_channel_info():
     output = run_command(cmd)
     return output
 
-def call(channel: Tile ):
+def call(channel):
     cmd = f"{BASEDIR_MUMBLE}mumble rpc calltochannel_{channel.id} {PLATFORM_PARAM}"
     output = run_command(cmd)
     return output

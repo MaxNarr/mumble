@@ -452,7 +452,7 @@ class UIManager:
             ip = server_entry.split("(")[1].replace(")", "").strip()
         except:
             ip = server_entry
-        self.client.connect(self.display_name, ip)
+        self.client.connect(ip,self.display_name)
         
      
     def _on_service_update(self, zeroconf, service_type, name, state_change):

@@ -2,7 +2,7 @@ import subprocess
 import time
 import re
 
-def start_jackd(interface=None, sample_rate=48000, buffer_size=128, periods=3):
+def start_jackd(interface=None, sample_rate=48000, buffer_size=64, periods=3):
     """
     Starts the JACK audio server with ALSA as the backend.
     

@@ -673,8 +673,8 @@ class UIManager:
                     })
             raw_pages.append(tlist)
         data["pages"] = raw_pages
-        data["displayName"] = self.display_name
-        data["ipAddress"] = self.ip_address
+        #data["displayName"] = self.display_name
+        #data["ipAddress"] = self.ip_address
         data["useDHCP"] = self.use_dhcp
         data["selectedServer"] = self.selected_server
         data["connectedServer"] = self.connected_server

@@ -20,7 +20,7 @@ def start_jackd(interface=None, sample_rate=48000, buffer_size=64, periods=3):
         else:
             interface = "hw:0"  # default if no USB device found
     
-    jack_command = f"jackd -R -d alsa -d {interface} -r {sample_rate} -p {buffer_size} -n {periods}"
+    jack_command = f"jackd -R -P 80 -d alsa -d {interface} -r {sample_rate} -p {buffer_size} -n {periods}"
     
     try:
         print("Starting JACK server...")

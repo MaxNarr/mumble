@@ -393,7 +393,7 @@ def user_input_loop():
         if sys.stdin.isatty():
             user_input = input("> ").strip()
         else:
-            print("Skipping input() because running under systemd")
+            pass #print("Skipping input() because running under systemd")
 
         if user_input.lower() == "exit":
             print("Exiting program.")
@@ -416,6 +416,7 @@ def user_input_loop():
                 output = mumbleRPC.get_channel_info()
             case _:
                 output = "Invalid command"
+                return
 
         print(output)
 

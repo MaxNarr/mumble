@@ -392,8 +392,6 @@ def user_input_loop():
         user_input = ""
         if sys.stdin.isatty():
             user_input = input("> ").strip()
-        else:
-            pass #print("Skipping input() because running under systemd")
 
         if user_input.lower() == "exit":
             print("Exiting program.")

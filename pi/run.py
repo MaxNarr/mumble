@@ -389,9 +389,11 @@ def socket_listener(server):
 def user_input_loop():
     """Loop forever reading user input from stdin."""
     while True:
+        time.sleep(1)
         user_input = ""
         if sys.stdin.isatty():
             user_input = input("> ").strip()
+        
 
         if user_input.lower() == "exit":
             print("Exiting program.")
@@ -414,7 +416,7 @@ def user_input_loop():
                 output = mumbleRPC.get_channel_info()
             case _:
                 output = "Invalid command"
-                return
+                continue
 
         print(output)
 
